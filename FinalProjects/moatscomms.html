@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Web MOATS</title>
+		<meta charset="UTF-8">
+		<script type="text/javascript">
+			console.log("Starting WEB MOATS");
+			
+			/**
+			
+				Reference for Opspec:
+				- -1 = None (usually LED check)
+				- 0 = mode setting
+				- 1 = getting the serial number
+			
+			*/
+			
+			const sleep = (milliseconds) => {
+				return new Promise(resolve => 
+			setTimeout(resolve, milliseconds))
+			}
+			
+			var testConnectionOpen = false;
+			var serialSet = false;
+			
+			//Array to hold the LEDs that are on
+			var currOn = [];
+			
+			//For AJAX response... wait before sending another
+			var waitingOnServer = false;
+			
+			//Switch on LED that is gotten back
+			function switchOn(id) {
+				//console.log(id);
+				if(id == "l18") {
+					document.getElementById("l19").style.backgroundColor = "rgb(0, 255, 0)";
+				}
+				document.getElementById(id).style.backgroundColor = "rgb(0, 255, 0)";
+			}
+			
+			//Turn off LED that is not gotten back
+			function switchOff(id) {
+				if(id == "l18") {
+					document.getElementById("l19").style.backgroundColor = "rgb(0, 100, 0)";
+				}
+				document.getElementById(id).style.backgroundColor = "rgb(0, 100, 0)";
+			}
+			
+			//Open Web PMC in a new page
+			function openwebpmc() {
+				var confirmed = confirm("Are you sure you'd like leave?");
+				if(comfirmed) {
+					window.open("/arbweb3-3.html", target="_blank");
+				}
+			}
+			
+			//Set up one of the UUT...
+			/*
+			 * 1133
+			 * 933
+			 * 928
+			*/
+			function setUpMoats(uutNum) {
+				console.log("\nMOATS button pressed");
+				//Which number did I get
+				switch(uutNum) {
+					case 1133:
+					case 933:
+					case 928:
+						//Do the ajax
+						if(ajaxpart(uutNum, -1))
+						{
+							console.log("Returned from AJAX initial");
+						}
+						else
+						{
+							console.log("Didn't get through AJAX");
+						}
+						break;
+					default:
+						//None of the numbers were right
+						alert("Invalid test unit number");
+						break;
+				}
+			}
+			
+			function changeTestConn() {
+				var obDiv = document.getElementById("hiddendiv");
+				if(testConnectionOpen) {
+					obDiv.style.display = "none";
+					testConnectionOpen = false;
+				}
+				else {
+					obDiv.style.display = "block";
+					testConnectionOpen = true;
+				}
+			}
+			
+			function switchOnPower() {
+				switchOn("sl1");
+			}
+			
+			function switchOffPower() {
+				switchOff("sl1");
+			}
+			
+			function modeButtonClicked(strRec) {
+				console.log("Mode button pressed: " + strRec);
+				var mapForModes = [
+						"RESET", "1133", "1133_DIFF", "933", "933_DIFF", "933_ICT_50MA", "933_ICT_1A", "933_VCT_2_4V",
+						"933_VCT_100MV", "933_EVENT", "928"
+					];
+					
+				if(mapForModes.indexOf(strRec) > -1) {
+					if(ajaxpart(strRec, 0))
+					{
+						console.log("Returned from AJAX initial");
+					}
+					else
+					{
+						console.log("Didn't get through AJAX");
+					}
+				}
+			}
+			
+			var uselessList = [];
+			
+			//AJAX takes the UUT number
+			function ajaxpart(test, opcodeSpec, sendpmc=0) {
+				console.log(sendpmc);
+				if((!isNaN(test)) && (opcodeSpec > -1)) {
+					test = (test).toString();
+				}
+				
+				console.log("test : " + test);
+				var httpxml;
+				try
+				{
+					httpxml = new XMLHttpRequest();
+				}
+				catch(error)
+				{
+					//Bad broswer then lol
+					alert("Your browser does not support AJAX! enough");
+					return false;
+				}
+				
+				//Open the request
+				httpxml.open("POST", "process_conn_combo.php", true);
+				console.log("Opened POST request");
+				
+				//Set the content to be sent in the format of an HTTP form
+				httpxml.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+				
+				var overallMessage = "";
+				var strToSend = "";
+				
+				if(testConnectionOpen && (sendpmc == 0)) {
+					strToSend = "/";
+					overallMessage = "sendpmc=1";
+				}
+				else if(sendpmc == 1) {
+					overallMessage = "sendpmc=1";
+				}
+				else {
+					overallMessage = "sendpmc=0";
+				}
+				
+				//Make it a JSON object
+				var data = JSON.stringify(strToSend + test);
+				console.log("Data to send: " + data);
+				overallMessage += ("&jsonthing=" + data);
+				if(opcodeSpec > -1) {
+					//alert(opcodeSpec);
+					overallMessage += ("&opcode=" + ((opcodeSpec).toString()));
+				}
+				//Send JSON object
+				httpxml.send(overallMessage);
+				
+				waitingOnServer = true;
+				
+				//Got somethin back
+				httpxml.onreadystatechange = function() {
+					//Good to go?
+					if((this.readyState == 4) && (this.status == 200)) {
+						console.log("Raw return: " + this.responseText);
+						var json = JSON.parse(this.responseText); //Parse JSON object returned
+						//json = "";
+						//It's an AcK
+						if((json == "done") && (!isNaN(test))) {
+							console.log("Got AcK\n");
+							alert("Successfully set up " + test + "U.U.T.");
+							switchOnPower();
+						}
+						else if(json == "done") {
+							console.log("Got AcK\n");
+							switchOnPower();
+						}
+						else {
+							var notLedsRetArr = ["calcons"];
+							if((json.constructor === Array) && (json[1] != "timedout") && (notLedsRetArr.indexOf(test) == -1)) {
+								var numAdded = 0;
+								console.log("Got back LEDs");
+								//Traverse the LEDs that are ON
+								for(var element of json) {
+									element = Number(element);
+									//Make sure the LED isn't already ON and that it should be able to turn ON
+									if((currOn.indexOf(element) == -1) && (uselessList.indexOf(element) == -1)) {
+										currOn.push(element); //Add the LED number to the ones that are one
+										//Need to turn on button
+										switchOn("l" + element);
+										//console.log(mapLeds[element]);
+										numAdded++;
+									}
+								}
+								//console.log("curr2: " + currOn);
+								//Traverse the LED array of all that were/are ON and turn OFF those that are no longer ON
+								for(var i = 0; i < currOn.length - numAdded; i++) {
+									currOn[i] = Number(currOn[i]);
+									var index = json.indexOf(currOn[i]);
+									//console.log("CurrOn element: " + currOn[i] + ". It's at index: " + index + " of jsonArr");
+									if(index == -1) {
+										//console.log("i: " + i);
+										var rmved = currOn.splice(i, 1);
+										//console.log("Turned off: " + rmved.toString() + " at index: " + i.toString());
+										////Need to turn off button
+										switchOff("l" + rmved);
+										i--; //Shift the index back (of is an iterator keyword)
+									}
+								}
+								switchOnPower();
+								if(opcodeSpec == 0) {
+									document.getElementById("modespan").innerHTML = "Mode Settings: " + test.replace("_", " ");
+								}
+							}
+							else if((json.constructor === Array) && (json[1] != "timedout") && (test == "calcons")) {
+								/*for(var element of json) {
+									console.log("New element: " + element);
+								}*/
+								putCalConsInList(json);
+							}
+							else if((!isNaN(json)) && (opcodeSpec == 10)) {
+								console.log("Got back a serial number: " + json)
+								document.getElementById("serialp").innerHTML = "<strong>Serial Number: " + json.toString() + "</strong>";
+								serialSet = true;
+							}
+							else {
+								//Not an AcK
+								console.log("Something went wrong. Returned response: " + json + "\n");
+								if(true) {
+									
+								}
+							}
+						}
+					}
+					waitingOnServer = false;
+				};
+				//Successful initial send at least
+				return 1;
+			}
+			
+			var numOfNodes = 16;
+			var listOfNames;
+			var listItemsSet = false;
+			
+			function setListElements() {
+				var objUL = document.getElementById("calconstable");
+				for(var i = 0; i < numOfNodes; i++) {
+					var liNode = document.createElement("LI");
+					liNode.innerHTML = "Hello" + i.toString() + ": ";
+					objUL.appendChild(liNode);
+					liNode.appendChild(document.createElement("SPAN"));
+				}
+			}
+			
+			function putCalConsInList(calCons) {
+				if(!listItemsSet) {
+					setListElements();
+					listItemsSet = true;
+				}
+				
+				var listOfLIs = document.getElementById("calconstable").getElementsByTagName("LI");
+				var listOfSpan = [];
+				for(var element of listOfLIs) {
+					listOfSpan.push((element.getElementsByTagName("SPAN"))[0]);
+				}
+				
+				var listToUse;
+				if(calCons.length <= listOfSpan.length) {
+					listToUse = calCons;
+				}
+				else {
+					listToUse = listOfSpan;
+				}
+				
+				for(var i = 0; i < listToUse.length / 2; i++) {
+					listOfSpan[i].innerHTML = calCons[i * 2];
+					listOfSpan[i + 8].innerHTML = calCons[(i * 2) + 1];
+				}
+				
+				var calDiv = document.getElementById('calconsdiv')
+				calDiv.style.display = "block";
+				calDiv.scrollIntoView();
+			}
+			
+			function calConsClicked() {
+				var calBut = document.getElementById("calcons");
+				if(calBut.innerHTML == "Get Cal Constants") {
+					if(ajaxpart('calcons', 12)) {
+						calBut.innerHTML = "Minimize Cal Stuff";
+					}
+				}
+				else {
+					document.getElementById("calconsdiv").style.display = "none";
+					calBut.innerHTML = "Get Cal Constants";
+				}
+			}
+			
+			function sendcalcons() {
+				var listOfLIs = document.getElementById("calconstable").getElementsByTagName("LI");
+				var listOfSpan = [];
+				var numStr = "fromElse=true;title=Calibration Constants;numbers=";
+				for(var element of listOfLIs) {
+					var spanStr = ((element.getElementsByTagName("SPAN"))[0]).innerHTML;
+					//console.log("Span: " + spanStr);
+					if((spanStr !== "") && (spanStr !== null)) {
+						numStr += spanStr + ",";
+						//console.log("NumString: " + numStr);
+					}
+				}
+				
+				//console.log(numStr);
+				numStr = numStr.substring(0, numStr.length - 1);
+				//console.log(numStr);
+				window.open("showvals.html?" + numStr + ";", "_blank");
+			}
+			
+			window.onload = function() {
+				var check = confirm("Would you like to test connection status?");
+				if(check) {
+					console.log("Checking serial");
+					ajaxpart("getSerial", 10);
+					sleep(2500).then(() => {
+						console.log("Checking LEDs");
+						ajaxpart("led_check");
+					})
+				}
+				//setListElements();
+				scroll(0, 0);
+			}
+		</script>
+		<style>
+			/*circle.png is available for use too if wanted*/
+			body {
+				text-align: center;
+			}
+			div.bigdiv {
+				width: 100%;
+				text-align: left;
+				/*border: 5px solid rgb(100, 100, 100);*/
+				margin-top: 30px;
+				padding-left: 20px;
+				height: auto;
+				margin-bottom: 30px;
+			}
+			
+			p {
+				width: 1em;
+				height: auto;
+				margin: 10px 5px;
+				text-align: center;
+				margin-bottom: 30px;
+			}
+			
+			p.leds {
+				border: 2px solid rgb(180, 180, 180);
+				border-radius: 50%;
+				background-color: rgb(0, 100, 0);
+				width: 15px;
+				height: 15px;
+				margin-bottom: 10px;
+			}
+			
+			div.main {
+				width: auto;
+				height: 250px;
+				margin: 0;
+				padding: 0;
+				display: inline-block;
+				margin-right: -8px;
+				text-align: center;
+				vertical-align: top;
+			}
+			
+			div#outsidediv {
+				width: 120px;
+				height: auto;
+				/*border: 5px solid rgb(100, 100, 100);*/
+				text-align: center;
+				vertical-align: top;
+				margin: 0;
+				padding-top: 70%;
+			}
+			
+			fieldset {
+				margin: 0;
+				height: 250px;/*calc(100% - 30px);*/
+				border: 3px solid black;
+			}
+			
+			div#twocolumns {
+				height: 150px;
+				width: 200px;
+				display: table;
+			}
+			
+			div.newcolumn {
+				display: table-cell;
+			}
+			
+			div#sourcecoil {
+				width: 325px;
+			}
+			
+			div#fssc {
+				width: 300px;
+			}
+			
+			p.psc {
+				height: 15px;
+				width: 15px;
+				display: inline-block;
+				margin: 2px 0px 10px 0px;
+				vertical-align:top;
+			}
+			
+			p.pscleds {
+				border: 2px solid rgb(180, 180, 180);
+				border-radius: 50%;
+				background-color: rgb(0, 100, 0);
+				width: 15px;
+				height: 15px;
+				display: inline-block;
+				margin: 10px 20px 40px 0;
+				vertical-align: middle;
+			}
+			
+			button#forpmc {
+				/*position: absolute;*/
+				bottom: 20px;
+				text-align: center;
+				left: 0;
+				right: 0;
+				margin: auto;
+				display: block;
+				margin-top: 15px;
+				margin-bottom: 15px;
+			}
+			
+			button#testerbut {
+				margin-bottom: 20px;
+			}
+			
+			div#testdiv {
+				text-align: center;
+				width: 100%;
+				margin: 0 auto;
+			}
+			
+			div#hiddendiv {
+				width: 60%;
+				margin-bottom: 30px;
+				display: none;
+				border: 2px dashed black;
+			}
+			
+			div#hiddendiv button {
+				display: inline;
+				margin-right: 50px;
+				width: 160px;
+				height: 30px;
+			}
+			
+			button:hover {
+				background-color: gray;
+			}
+			
+			div.bigdiv button.modeButton {
+				display: inline;
+				margin-right: 20px;
+				width: 180px;
+				height: 40px;
+				margin-bottom: 10px;
+			}
+			
+			div.bigdiv#modesdiv {
+				margin: 0 auto;
+				width: 85%;
+				height: auto;
+				text-align: center;
+				border: 2px dashed black;
+				margin-bottom: 20px;
+				padding-bottom: 20px;
+			}
+			
+			div#modesdiv p {
+				width: auto;
+				text-align: center;
+			}
+			
+			div#modesdiv p span {
+				text-decoration: underline;
+				color: rgb(200, 100, 0);
+				font-weight: bold;
+			}
+			
+			.bigdiv p#serialp {
+				width: auto;
+				height: auto;
+				display: block;
+			}
+			
+			div#calconsdiv {
+				display: none;
+			}
+			
+			ul#calconstable {
+				-webkit-column-count: 2; /* Chrome, Safari, Opera */
+				-moz-column-count: 2; /* Firefox */
+				column-count: 2;
+				border: 1px solid black;
+				text-align: center;
+				margin: 0 auto;
+				width: 60%;
+			}
+			
+			caption {
+				text-align: center;
+				width: inherit;
+				display: block;
+			}
+			
+			ul#calconstable li {
+			}
+		</style>
+	</head>
+	<body>
+		<div class="bigdiv">
+			<p id="serialp"><strong>Serial Number: None</strong></p>
+			<div class="main">
+				<div id="outsidediv">
+					<p class="leds" id="sl1" style="margin-right: auto; margin-left: auto;"></p>
+					<p style="width: auto;">Power</p>
+					<p class="leds" id="l0" style="margin-right: auto; margin-left: auto;"></p>
+					<p style="width: auto;">Differential Mode</p>
+				</div>
+			</div>
+			<div class="main" id="ls1133">
+				<fieldset>
+					<legend align="center">1133 L.S.</legend>
+					<p class="leds" id="l1"></p>
+					<p>V</p>
+					<p class="leds" id="l2"></p>
+					<p>I</p>
+				</fieldset>
+			</div>
+			<div class="main" id="uut1133">
+				<fieldset>
+					<legend align="center">1133 U.U.T.</legend>
+					<p class="leds" id="l3"></p>
+					<p>V</p>
+					<p class="leds" id="l4"></p>
+					<p>I</p>
+				</fieldset>
+			</div>
+			<div class="main" id="uut933">
+				<fieldset>
+					<legend align="center">933 U.U.T.</legend>
+					<div id="twocolumns">
+						<div class="newcolumn">
+							<p class="leds" id="l5"></p>
+							<p>V</p>
+							<p class="leds" id="l6"></p>
+							<p>I</p>
+						</div>
+						<div class="newcolumn">
+							<p class="leds" id="l7"></p>
+							<p style="margin-bottom: 11px;">Aux<br>I/O</p>
+							<p class="leds" id="l8" style="margin-top: 0px;"></p>
+							<p>CT</p>
+						</div>
+					</div>
+				</fieldset>
+			</div>
+			<div class="main" id="uut928">
+				<fieldset>
+					<legend align="center">928 U.U.T.</legend>
+					<p class="leds" id="l9"></p>
+					<p>V</p>
+					<p class="leds" id="l10"></p>
+					<p>I</p>
+				</fieldset>
+			</div>
+			<div class="main" id="sourcecoil">
+				<fieldset>
+					<legend align="center">Source Coil</legend>
+					<div id="fssc">
+						<p class="psc">1</p>
+						<p class="pscleds" id="l11">&nbsp;</p>
+						<p class="psc">2</p>
+						<p class="pscleds" id="l12"></p>
+						<p class="psc">3</p>
+						<p class="pscleds" id="l13"></p>
+						<p class="psc">4</p>
+						<p class="pscleds" id="l14"></p><br>
+						<p class="psc">5</p>
+						<p class="pscleds" id="l15"></p>
+						<p class="psc">6</p>
+						<p class="pscleds" id="l16"></p>
+						<p class="psc">7</p>
+						<p class="pscleds" id="l17"></p>
+					</div>
+				</fieldset>
+			</div>
+			<div class="main" id="contactio">
+				<fieldset>
+					<legend align="center">Contact I/O</legend>
+					<p class="leds" id="l18" style="margin-bottom: 50px;"></p>
+					<p class="leds" id="l19"></p>
+				</fieldset>
+			</div>
+		</div>
+		<div class="bigdiv" id="modesdiv">
+			<p><span id="modespan">Mode Settings</span></p>
+			<button class="modeButton" onclick="modeButtonClicked('RESET')">RESET</button>
+			<button class="modeButton" onclick="modeButtonClicked('1133')">1133</button>
+			<button class="modeButton" onclick="modeButtonClicked('1133_DIFF')">1133 DIFF</button>
+			<button class="modeButton" onclick="modeButtonClicked('933')">933</button>
+			<button class="modeButton" onclick="modeButtonClicked('933_DIFF')">933 DIFF</button>
+			<button class="modeButton" onclick="modeButtonClicked('933_ICT_50MA')">933 ICT<br>50MA</button>
+			<button class="modeButton" onclick="modeButtonClicked('933_ICT_1A')">933 ICT<br>1A</button>
+			<button class="modeButton" onclick="modeButtonClicked('933_VCT_2_4V')">933 VCT<br>2 4V</button>
+			<button class="modeButton" onclick="modeButtonClicked('933_VCT_100MV')">933 VCT<br>100MV</button>
+			<button class="modeButton" onclick="modeButtonClicked('933_EVENT')">933<br>EVENT</button>
+			<button class="modeButton" onclick="modeButtonClicked('928')">928</button>
+		</div>
+		<div id="testdiv">
+			<button id="testerbut" onclick="changeTestConn()">Open/Close PMCd Test</button>
+			<div id="hiddendiv">
+				<button onclick="setUpMoats(1133)">Set up 1133</button>
+				<button onclick="setUpMoats(933)">Set up 933</button>
+				<button onclick="setUpMoats(928)">Set up 928</button>
+				<button onclick="ajaxpart('calcons', -1, 1)">Send PMC Cal COns</button>
+			</div>
+		</div>
+		<button id="calcons" onclick="calConsClicked()">Get Cal Constants</button>
+		<div id="calconsdiv">
+			<caption>Calibration Constants</caption>
+			<ul id="calconstable">
+			</ul>
+			<button onclick="sendcalcons()">See values on graph</button>
+		</div>
+		<button id="forpmc" onclick="openwebpmc()">Open Web PMC</button>
+	</body>
+</html>

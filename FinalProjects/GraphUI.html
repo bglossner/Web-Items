@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Graph Data</title>
+		<script>
+			//		*****	Default Variables	******		//
+			
+			var values = []; //Value array that stores data points
+			var maxIntervalsShown = 4; //How many data points can be viewed on graph
+			var minValue = 0; //Minimum value on graph
+			var maxValue = minValue; //Maximum value on graph
+			var maxValsAllowed = 5; //Number of values saved before getting rid of old ones
+			var adaptingIntervals = true; //Should graph points increase as data points increase?
+			var defaultRectX = 100; //Distance from the left edge of the canvas to the graph
+			var defaultRectY = 50; //Distance from the upper edge of the canvas to the graph
+			const rectHeight = 400.0; //Distance in pixels of the graph's height
+			const rectWidth = 800; //Distance in pixels of the graph's width
+			var scalePercentage = .8; //Scaling factor of the graph
+			var distFromEdge = 100; //Dostamce from the right edge of the graph
+			var upperScaleVal = 0; //The uppermost displayed value possible based on maxValue for scaling purposes
+			var distBetweenPoints = (rectWidth - distFromEdge) / maxIntervalsShown; //Distance between data points on the graph
+			var showDataNum = false; //Should show data points values on graph?
+			var setMaxLimit = false; //For window
+			var setMinLimit = false; //For window
+			var graphTitle = "";
+            
+            //For lines
+            var newLineIndexes= [];
+            var newLineIncoming = true;
+            
+            var autoMinimum = false;
+            
+            //For line colors
+            var useColors = false;
+            var colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "magenta", "indigo"];
+            
+            //For key/names
+            const keyWidth = 150;
+            const keyHeight = rectHeight * (3 / 4);
+            var names = [];
+            var allowNames = useColors;
+            
+            //For slope
+			var findingSlope = false;
+			var pointUsed = false;
+			var lastPointClicked = new Array(2);
+			
+			//For testing file reading
+			var fileToRead = "/lastinput.txt"; //File to grab data from
+			var shouldGrab = false; //Should data be grabbed from the file
+			
+			//Miscellaneous
+			const timeInterval = 1; //Unused right now
+			
+			
+			//		****************************************************************		//
+			
+			
+			//Set canvas draw color
+			function setStroke(color) {
+				//console.log("color given: " + color);
+				document.getElementById("myCanvas").getContext("2d").strokeStyle = color;
+			}
+			
+			function getTitleCenterX(title) {
+				return (rectWidth / 2 + defaultRectX) - ((title.length * 12) / 2);
+			}
+			
+			//Set up the initial canvas (gets canvas's context object)
+			function canvasSetup(ctx) {
+				scroll(0, 0);
+				//Move to top left
+				ctx.moveTo(0, 0);
+				//Initializes that there are strokes to be started on a new, blank page
+				setStroke("#000");
+				ctx.beginPath();
+				ctx.translate(0.5, 0.5); //For clean, thin lines
+				//Creates the graph
+				ctx.strokeRect(defaultRectX, defaultRectY, rectWidth, rectHeight);
+				drawKey(ctx, names);
+				ctx.translate(-1, -1); //For the text, translate back
+				ctx.closePath();
+				ctx.beginPath();
+				
+				//Draw rest of graph
+				ctx.font = "20px Arial";
+				//Set title
+				if(graphTitle != "") {
+					ctx.fillText(graphTitle, getTitleCenterX(graphTitle), defaultRectY - 20);
+				}
+				//Displays the uppermost and lowermost value as a float with 2 decimal places
+				ctx.fillText(((upperScaleVal).toFixed(2)).toString(), 80, 45);
+				ctx.fillText(((minValue).toFixed(2)).toString(), 80, rectHeight + (defaultRectY * 2) - 30);
+				//X-axis label. Y is unknown, thus blank
+				//console.log("Rect Height: " + rectHeight + "  defaultRectY: " + defaultRectY);
+				ctx.fillText("Time Intervals", (rectWidth / 2) + 25, rectHeight + (defaultRectY * 2) - 5);
+				ctx.font = "15px Arial";
+				
+				//Draws out the x-axis interval
+				for(var i = 1; i <= maxIntervalsShown; i++) {
+					var evaluatedY = (rectHeight + defaultRectY) + 10; //Proper y-value
+					var evaluatedX = getScaledXValue(i); //proper x-value
+					ctx.moveTo(evaluatedX, evaluatedY); //go to point
+					ctx.lineTo(evaluatedX, evaluatedY - 20); //draw line from last point to new point
+					//console.log("X: " + evaluatedX + "\nY: " + evaluatedY);
+					if(maxIntervalsShown <= 30) {
+						ctx.fillText(i.toString(), evaluatedX - 5, evaluatedY + 15); //Write the number beneath
+					}
+				}
+				//Draws important numbers on side of graph
+				if(upperScaleVal - minValue > 0) {
+					//Draws 0 if on graph
+					if((upperScaleVal > 0) && (minValue < 0)) {
+						var findZeroY = defaultRectY + (rectHeight * (1 - (-1 * minValue / (upperScaleVal - minValue))));
+						ctx.moveTo(defaultRectX - 10, findZeroY);
+						ctx.lineTo(defaultRectX + 10, findZeroY);
+						ctx.fillText("0", defaultRectX - 25, findZeroY + 6);
+					}
+					
+					//Draws mid number between upperScale and min value
+					var middleNum = upperScaleVal - ((upperScaleVal - minValue) / 2);
+					if(middleNum != 0) {
+						var findMiddleY = defaultRectY + (rectHeight / 2);
+						ctx.moveTo(defaultRectX - 10, findMiddleY);
+						ctx.lineTo(defaultRectX + 10, findMiddleY);
+						middleNumStr = parseFloat((middleNum.toFixed(5))).toString();
+						//console.log(middleNumStr);
+						ctx.fillText(middleNumStr, defaultRectX - ((middleNumStr.length) * 12), findMiddleY + 6);
+					}
+				}
+				
+				ctx.stroke(); //Actually show the changes now
+				ctx.closePath();
+			}
+			
+			//Draw side key for lines
+			function drawKey(ctx, names) {
+				//Close any open paths and start new one
+				ctx.closePath();
+				ctx.beginPath();
+				setStroke("black");
+				
+				var fromTop = 30; //Distance of key from top of graph
+				var maxHeight = keyHeight; //Max height of key
+				
+				//Default (x,y) coords of top left of graph
+				var keyX = defaultRectX + rectWidth + 20;
+				var keyY = defaultRectY + (rectHeight / 8);
+				
+				//Makes title
+				ctx.font = "15px Arial";
+				var txt = "KEY";
+				ctx.fillText(txt, keyX + ((keyWidth / 2) - (ctx.measureText(txt).width / 2)), keyY - 10);
+				ctx.closePath();
+				
+				//Drawing the actual inside of the key
+				ctx.font = "12px Arial";
+				var i = 0;
+				for(i = 0; i < names.length; i++) {
+					//If over 12, won't fit in max height
+					if(i <= 12) {
+						//Need for new color
+						ctx.beginPath();
+						var nameX = keyX + 10;
+						var nameY = keyY + fromTop + (i * 20);
+						ctx.moveTo(nameX, nameY);
+						ctx.lineTo(nameX + 20, nameY);
+						ctx.strokeStyle = colors[i]; //Draw colored line
+						ctx.stroke();
+						ctx.fillText("L" + i + ": " + names[i], nameX + 30, nameY + 5); //Draw associated line name
+						ctx.closePath();
+					}
+					else {
+						alert("Could not fit line " + names[i] + " in key");
+					}
+				}
+				
+				//Draw actual key rectangle (enclosement)
+				ctx.beginPath();
+				ctx.strokeStyle = "black";
+				if(i < 12) {
+					ctx.strokeRect(keyX, keyY, keyWidth, fromTop + 10 + (i * 20));
+				}
+				else {
+					ctx.strokeRect(keyX, keyY, keyWidth, keyHeight);
+				}
+				
+				ctx.closePath();
+			}
+			
+			//First box option for sending data points manually
+			function sendNewValue() {
+				//Make it so that the data grabbing is turned off if user is manually inputting
+				if(shouldGrab) {
+					shouldGrab = false;
+					document.getElementById("intervalgrab").checked = false; //Uncheck the checkbox
+					alert("No longer grabbing from file");
+				}
+				//Update the graph for sending a manaul value
+				updateCanvas(true, -1, true);
+			}
+			
+			//For either giving a value manually or getting one from a file
+			function getNewValue() {
+				if(shouldGrab) {
+					//AJAX part
+					var file = new XMLHttpRequest();
+					file.open("GET", fileToRead, false);
+					
+					//Got something
+					file.onreadystatechange = function() {
+						if(this.readyState == 4) {
+							if((this.status == 200) || (this.status == 0)) {
+								var txtReceived = this.responseText; //Received number
+								console.log(txtReceived);
+								//Update the canvas with a new data point from an automatic response
+								updateCanvas(true, parseFloat(txtReceived), false);
+							}
+						}
+					}
+					//Not sending anything
+					file.send(null);
+				}
+				else {
+					//For manual entry
+					return parseFloat(document.getElementById("ta").value);
+				}
+			}
+			
+			//IMPORTANT
+			//Set the uppermost possible value according to the scale wanted
+			function setUpperScale() {
+				if(!setMaxLimit) {
+					var range = maxValue - minValue;
+					
+					//  If point is 2 and minValue and scale haven't changed, it's just the 100%
+					//  value of if 2 is the 80% value
+					upperScaleVal = parseFloat(maxValue + ((range * (1.0 / scalePercentage)) - range));
+				}
+			}
+			
+			//IMPORTANT
+			//returns a scaled y value according to a y-value in data
+			function getScaledYValue(valRec) {
+				//Find origin of Y-coordinate of graph
+				var zeroedY = rectHeight + defaultRectY;
+				return zeroedY - (rectHeight * ((valRec - minValue) / (upperScaleVal - minValue)));
+			}
+			
+			//returns scaled x value coord
+			function getScaledXValue(valRec) {
+				return defaultRectX  + (valRec * distBetweenPoints);
+			}
+            
+            
+            //Unused
+            function findLastValue(newLineIndex) {
+                if(newLineIndex < newLineIndexes.length) {
+                    var nextValue = newLineIndexes[newLineIndex + 1];
+                }
+            }
+            
+            //Returns index of the line number in the values list
+            function findIndexFromLineNum(linenum) {
+                if(linenum < newLineIndexes.length) {
+                    return newLineIndexes[linenum];
+                }
+                return -1;
+            }
+            
+            //Finds appropriate index for placing value
+            function findAppendIndex(linenum) {
+				//Assuming the line number given exists, find where value should go
+                var lineIndex = findIndexFromLineNum(linenum);
+                if(lineIndex >= 0) {
+                    var nextLine = findIndexFromLineNum(linenum + 1);
+                    if(nextLine >= 0) {
+                        return nextLine;
+                    }
+                    else {
+                        return values.length;
+                    }
+                }
+                
+                return -1;
+            }
+            
+            //Find the distance between the longest line and its end
+            function findMaxIntervals() {
+				if(newLineIndexes.length > 0) {
+					var maxInterval = newLineIndexes[0];
+					let i = 0;
+					if(newLineIndexes.length > 1) {
+						for(i = 1; i < newLineIndexes.length; i++) {
+							var dist = newLineIndexes[i] - newLineIndexes[i - 1] - 1;
+							if(dist > maxInterval) {
+								maxInterval = dist;
+							}
+						}
+					}
+					
+					dist = values.length - 1 - newLineIndexes[i - 1];
+					if(dist > maxInterval) {
+						maxInterval = dist;
+					}
+					
+					return maxInterval;
+				}
+				
+				return 0;
+			}
+            
+            //Adjusts line numbers on the indexes for where new lines are
+            function adjustLines(linenum) {
+                if(linenum < newLineIndexes.length - 1)
+                for(var i = linenum + 1; i < newLineIndexes.length; i++) {
+                    newLineIndexes[i]++;
+                }
+            }
+            
+            function setMax() {
+				if(!setMaxLimit) {
+					maxValue = Math.max.apply(Math, values);
+					setUpperScale(); //Reset uppermost scaled value
+					document.getElementById("setmaxlimit").value = maxValue;
+				}
+			}
+			
+			function setMin() {
+				if(!setMinLimit) {
+					minValue = Math.min.apply(Math, values);
+					setUpperScale(); //Reset uppermost scaled value
+					document.getElementById("minvalue").value = minValue;
+				}
+			}
+            
+            //Prompt user for name for line
+            function getName(linenum=-1) {
+				var response = null;
+				//Keep asking until response is given
+				while((response == "") || (response == null)) {
+					if(linenum == -1) {
+						response = prompt("What would you like to name this line (for key)?");
+					}
+					else if(linenum >= 0)
+					{
+						response = prompt("What would you like to name line number: " + (linenum + 1).toString() + "?");
+					}
+				}
+				
+				console.log("Named line: " + response);
+				names.push(response); //Updates name list
+				return response; //Returns name
+			}
+			var shouldRedraw = true;
+			//Update the canvas, if it has a new number, or just to update it from new settings
+			function updateCanvas(isNewValue=true, newValue=-1, userSent=false, newLine=newLineIncoming, lineNumber=newLineIndexes.length - 1,
+									insertValue=-1) {				
+				//console.log(newValue + "," + isNewValue + "," + userSent);
+				//Is Input?
+				if(isNewValue) {
+					//Manual entry? Yes - Grab the data
+					if((newValue == -1) && userSent) {
+						newValue = getNewValue();
+					}
+					console.log("New value: " + newValue);
+					//Automatic entry of an actual number? Yes - we were given the number. No - set it to minimum
+					if((newValue === null) || (newValue === "") || (newValue === undefined)) {
+						newValue = minValue;
+						console.log("No value was there");
+					}
+					
+					//Make sure we won't have a divide by 0 error with this new point
+					if((maxValue == minValue) && (newValue == 0)) {
+						console.log("Can not enter that (divide by zero)");
+						alert("Avoided /0 error");
+						return;
+					}
+                    
+                    //If we have no values, then we need a new line. Resets indexes too
+                    if(values.length == 0) {
+                        newLineIndexes = [];
+                        newLine = true;
+                    }
+					
+					//Check if this should be a new line
+                    if(newLine) {
+                        newLineIndexes.push(values.length);
+                        lineNumber = newLineIndexes.length - 1;
+                    }
+                    
+                    var appendValue = findAppendIndex(lineNumber); //Find where new number should be appended to in values list
+                    if(insertValue >= 0) {
+						if(insertValue <= appendValue) {
+							appendValue = insertValue;
+						}
+						else {
+							alert("Unusable insert value");
+							return;
+						}
+					}
+					
+                    console.log("Append val: " + appendValue);
+                    if((appendValue == values.length) || (appendValue == -1)) {
+						//End of list
+                       values.push(newValue);
+                    }
+                    else {
+						//Certain place in list
+                        values.splice(appendValue, 0, newValue);
+                        //Adjust lines because of insertion
+                        adjustLines(lineNumber);
+                    }
+					
+					//For paragraph for displaying data. Just style
+                    if(newLine) {
+                        document.getElementById("datap").innerHTML += " | ";
+                    }
+                    
+					if((values.length != 1) && !newLine) {
+						document.getElementById("datap").innerHTML += ", " + newValue;
+					}
+					else {
+						document.getElementById("datap").innerHTML += newValue;
+					}
+					//Update data points view
+					document.getElementById("ta").value = newValue;
+					
+                    var valueIndex = newLineIndexes[lineNumber]; //Find index of first value of line
+                    
+					//Get rid of oldest element if there are too many now
+					if((appendValue - valueIndex) > maxValsAllowed) {
+						if(!adaptingIntervals) {
+							//Check if the one we are getting rid of was the max value
+							if(values[valueIndex] == maxValue) {
+								values.splice(valueIndex, 1); //Get rid of it
+								//Set max value if the max value setting IS NOT set
+								setMax();
+							}
+                            else if(values[valueIndex] == minValue) {
+                                values.splice(valueIndex, 1); //Get rid of it
+								//Set min value if the min value setting IS NOT set
+								setMin();
+                            }
+							else {
+								values.splice(valueIndex, 1);
+							}
+						}
+						else {
+							//console.log("Append: " + appendValue + "     Value: " + valueIndex);
+							setMaxIntervals(appendValue - valueIndex);
+						}
+					}
+					//Check if value received is higher than the current max value
+					if(newValue > maxValue) {
+						console.log("New High");
+						//ctx.fillStyle = "#ffffff";
+						//ctx.fillText((maxValue).toString(), 80, 50);
+						
+						//Set max value if the max value setting IS NOT set
+						if(!setMaxLimit) {
+							if(typeof(newValue) == "string") {
+								newValue = Number(newValue);
+							}	
+							maxValue = newValue;
+							setUpperScale(); //Reset uppermost scaled value
+							document.getElementById("setmaxlimit").value = maxValue;
+						}
+					}
+					//Check if value received is lower than the current minimum value
+					else if(newValue < minValue) {
+						console.log("New low");
+						//Set min if min value seeting IS NOT set
+						if(!setMinLimit) {
+							//console.log("reached");
+							minValue = newValue;
+							//console.log("negative");
+							setUpperScale(); //Reset uppermost scaled value (range has changed)
+							document.getElementById("minvalue").value = minValue;
+							
+						}
+					}
+					//Check to see if there should be a minimum based on line and not 0
+					else if(autoMinimum && (values.length > 1) && (values.indexOf(minValue) == -1)) {
+						minValue = newValue;
+						setUpperScale();
+						document.getElementById("minvalue").value = minValue;
+					}
+				}
+				
+				//If there are names allowed for lines, prompt user if there is a new line or if
+				//name have just been established
+				var i = names.length;
+				//Checks to see if there's a name for each line
+				while(newLineIndexes.length > i) {
+					//Gets a name for the line or no name
+					if(allowNames) {
+						getName(i);
+					}
+					else {
+						names.push("");
+					}
+					
+					i++;
+				}
+				
+				//Canvas object stuff
+				var canvas = document.getElementById("myCanvas");
+				var ctx = canvas.getContext("2d");
+				ctx.translate(0.5, 0.5);
+				//Clear and set up the canvas again
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				canvasSetup(ctx);
+				//console.log(values);
+				
+				//Start a new path for the lines (resets the canvas drawings)
+				ctx.beginPath();
+				//ctx.translate(0.5, 0.5);
+				ctx.font = "12px Arial";
+				/*console.log("Values: " + values);
+                console.log("IndexList: " + newLineIndexes);*/
+				//No reason to go through this if there are no values to plot or we don't want to draw it
+				if((values.length > 0) && shouldRedraw) {
+					console.log("Drawing");
+					//Go through each line
+                    for(var j = 0; j < newLineIndexes.length; j++) {
+						ctx.beginPath();
+                        var zeroIndex = newLineIndexes[j]; //First index value of new line
+                        //Grabs the proper scaled Y value with an X-value of 0 on the graph
+                        defaultForZeroY = getScaledYValue(values[zeroIndex]);
+                        ctx.moveTo(defaultRectX, defaultForZeroY); //Move to the point just plotted
+                        
+                        //Set line to draw to a certain color if wanted
+                        if(useColors) {
+							setStroke(colors[j]);
+						}
+                        //If we should show data points, show the first one we just plotted
+                        if(showDataNum) {
+                            ctx.fillText((values[zeroIndex]).toString(), defaultRectX - 6, defaultForZeroY - 6);
+                        }
+                        //Plot all other data points in given line
+                        //Checks to make sure that:
+						//	1. Not a null Value		2. We don't go over into another line's values		3. We don't go over the intervals allowed per line
+                        for(var i = 1; ((values[zeroIndex + i] != null) && ((j >= newLineIndexes.length - 1) || (i + zeroIndex < newLineIndexes[j + 1])) && (i <= maxIntervalsShown)); i++) {
+                            //Does same as with first point except draws lines to each point
+                            var evaluatedScaledY = getScaledYValue(values[zeroIndex + i]);
+                            var evaluatedX = getScaledXValue(i);;
+                            ctx.lineTo(evaluatedX, evaluatedScaledY);
+                            ctx.moveTo(evaluatedX, evaluatedScaledY + 7);
+                            ctx.lineTo(evaluatedX, evaluatedScaledY - 7);
+                            ctx.moveTo(evaluatedX, evaluatedScaledY);
+                            //Draws the numbers
+                            if(showDataNum && (maxIntervalsShown <= 20)) {
+                                ctx.fillText((values[zeroIndex + i]).toString(), evaluatedX - 6, evaluatedScaledY - 6);
+                            }
+                        }
+                        
+                        //Actual drawing
+                        ctx.stroke();
+                        ctx.closePath();
+                    }
+                    
+                    //Draw it without colors
+                    if(!useColors) {
+                        setStroke("black");
+                        ctx.stroke(); //Draw the actual lines
+                    }
+				}
+				//updateUpdater("Completed canvas update");
+                if(newLineIncoming) {
+                    newLineIncoming = false;
+                    document.getElementById("newline").checked = false;
+                    var checkNewObj = document.getElementById("newline");
+                    if(checkNewObj.checked) {
+						checkNewObj.checked = false;
+					}
+                }
+			}
+			
+			//For automatically updating based on file
+			function updateCanvasAuto() {
+				if(shouldGrab) {
+					getNewValue();
+				}
+			}
+			
+			//Returns the minimum value of a list
+			function findMinValue(l) {
+				return Math.min.apply(Math, l);
+			}
+			
+			//Returns the maximum value of a list
+			function findMaxValue(l) {
+				return Math.max.apply(Math, l);
+			}
+			
+			//Set the minimum value of the graph manually
+			function setMinValue() {
+				var text = document.getElementById("minvalue").value;
+				minValue = Number(text);
+				//If the minimum value is greater than the max value, update max value
+				if(maxValue < minValue) {
+					maxValue = minValue;
+					document.getElementById("setmaxlimit").value = maxValue;
+					updateUpdater("Set max value: " + maxValue);
+				}
+				//Reset uppermost scaled value and redraw the canvas
+				setUpperScale();
+				updateCanvas(false);
+				updateUpdater("Set min value: " + text);
+			}
+			//Set the number of intervals on the graph (x-axis change)
+			function setMaxIntervals(valueGiven=false) {
+				var text;
+				if(!valueGiven) {
+					text = document.getElementById("showintervals").value;
+				}
+				else {
+					text = valueGiven;
+					document.getElementById("showintervals").value = text;
+				}
+				
+				maxIntervalsShown = parseInt(text);
+				//maxValsAllowed = maxIntervalsShown; //Update the maount that can be saved now
+				setValsAllowed(maxIntervalsShown);
+				setDistPoints(); //Reset the distance between the intervals
+				updateCanvas(false); //Redraw canvas
+				updateUpdater("Set values allowed: " + text);
+			}
+            
+			//Set the scale at which the maximum data point (positive) will be placed relative to the top of the graph
+			function setScalePercent() {
+				var text = document.getElementById("changeScalePercent").value;
+				var newScale = parseInt(text);
+				//Entered as whole number but is out of 1 in the end (80 -> .8)
+				if(newScale > 0) {
+					scalePercentage = newScale / 100;
+					setUpperScale();
+				}
+				updateCanvas(false); //Redraw the canvas
+				updateUpdater("Set scale: " + text);
+			}
+			//Set the maximum values that can be saved in data list
+			function setValsAllowed(valueGiven=false) {
+				return;
+				var text;
+				if(!valueGiven) {
+					text = document.getElementById("savedamount").value;
+				}
+				else {
+					text = valueGiven;
+					document.getElementById("savedamount").value = text;
+				}
+				
+				maxValsAllowed = parseInt(text);
+				updateUpdater("Set values allowed: " + text);
+			}
+			//Set the maximum value of the graph manually
+			function setMaxValue() {
+				var text = document.getElementById("setmaxlimit").value;
+				upperScaleVal = Number(text);
+				//Reset uppermost scaled value and redraw the canvas
+				//setUpperScale();
+				updateCanvas(false);
+				updateUpdater("Set max value: " + text);
+			}
+			//Set the distance from the right edge of the graph to the last interval value (Just style)
+			function setEdgeDistance() {
+				var text = document.getElementById("setedge").value;
+				distFromEdge = parseInt(text);
+				setDistPoints(); //Reset the distance
+				updateCanvas(false); //Redraw canvas
+				updateUpdater("Set edge distance: " + text);
+			}
+			//Set the distance between each point on the interval (x-axis distance)
+			function setDistPoints() {
+				distBetweenPoints = (rectWidth - distFromEdge) / maxIntervalsShown;
+			}
+			
+			//If a checkbox has been changed
+			function checkboxChanged(id) {
+				var checkobj = document.getElementById(id);
+				//Which textbox?
+				switch(id) {
+					//For showing data labels on the actual graph
+					case "showdata":
+						if(checkobj.checked) {
+							showDataNum = true;
+						}
+						else {
+							showDataNum = false;
+						}
+						updateCanvas(false); //Redraw canvas
+						break;
+					//For grabbing values from file
+					case "intervalgrab":
+						if(checkobj.checked) {
+							shouldGrab = true;
+						}
+						else {
+							shouldGrab = false;
+						}
+						break;
+					//For setting the current maximum as a LIMIT
+					case "setmax":
+						if(checkobj.checked) {
+							//Make sure that errors will not occur from setting it as a limit
+							if((minValue != maxValue) || (!setMinLimit)) {
+								setMaxLimit = true;
+							}
+							else {
+								checkobj.checked = false;
+								alert("Can not set a limit with current settings");
+								return;
+							}
+						}
+						else {
+							setMaxLimit = false;
+						}
+						break;
+					//For setting the current minimum as a LIMIT
+					case "setmin":
+						if(checkobj.checked) {
+							//Make sure that errors will not occur from setting it as a limit
+							if(((minValue != maxValue) || (!setMaxLimit)) && (!autoMinimum)) {
+								setMinLimit = true;
+							}
+							else if(autoMinimum) {
+								alert("Uncheck auto minimum");
+								return;
+							}
+							else {
+								checkobj.checked = false;
+								alert("Can not set a limit with current settings");
+								return;
+							}
+						}
+						else {
+							setMinLimit = false;
+						}
+						break;
+					//For increasing max interval count as numbers come in
+					case "adaptintervals":
+						if(checkobj.checked) {
+							adaptingIntervals = true;
+						}
+						else {
+							adaptingIntervals = false;
+						}
+						break;
+					//For making a new line in the data
+                    case "newline":
+                        if(checkobj.checked) {
+							newLineIncoming = true;
+						}
+						else {
+							newLineIncoming = false;
+						}
+                        break;
+                    //For adding color to the lines
+                    case "linecolor":
+                        if(checkobj.checked) {
+							useColors = true;
+						}
+						else {
+							useColors = false;
+						}
+                        updateCanvas(false);
+                        break;
+                    //For adding names to the lines
+                    case "allownames":
+						if(checkobj.checked) {
+							allowNames = true;
+						}
+						else {
+							allowNames = false;
+						}
+						updateCanvas(false);
+						break;
+					//For creating a minimum value based on the graph of values
+					case "automin":
+						if(checkobj.checked) {
+							//Make sure that a min limit isnt set
+							if(!setMinLimit) {
+								autoMinimum = true;
+								//Useless if there is only 1 or 0 points
+								if(values.length > 1) {
+									document.getElementById("minvalue").value = findMinValue(values);
+									setMinValue();
+								}
+							}
+							else {
+								alert("Uncheck minimum limit");
+								return;
+							}
+						}
+						else {
+							autoMinimum = false;
+						}
+						break;
+					case "seedata":
+						dataObj = document.getElementById("datap");
+						if(checkobj.checked) {
+							dataObj.style.display = "block";
+						}
+						else {
+							dataObj.style.display = "none";
+						}
+						
+						break;
+					case "reportPoint":
+						if(checkobj.checked) {
+							pointCommand = "point";
+						}
+						else {
+							pointCommand = "";
+						}
+						break;
+					default:
+						console.log("Not recognized checkbox");
+						break;
+				}
+				
+				//Update the textarea telling actions taken
+				if(checkobj.checked) {
+					updateUpdater(id + ": true");
+				}
+				else {
+					updateUpdater(id + ": false");
+				}
+			}
+			
+			//Reset data variables and data list to 0s
+			function resetData() {
+				values = new Array();
+				maxValue = 0;
+				minValue = 0;
+				upperScaleVal = 0;
+				names = [];
+				newLineIndexes = [];
+				graphTitle = "";
+				findingSlope = false;
+				newLineIncoming = false;
+				document.getElementById("datap").innerHTML = "None";
+				updateCanvas(false);
+				updateUpdater("Resetting Data");
+			}
+			
+			//Unused
+			function setDiagOnGraph() {
+				var text = document.getElementById("diagline").value;
+				if(text != "") {
+					text = text.replace(/ /g, "");
+					xIndex = text.indexOf("x");
+					if(xIndex > -1) {
+						xSubStr = text.substring(0, xIndex);
+						ySubStr = text.substring(xIndex + 1);
+						if(xSubStr !== 0) {
+							var x, y;
+							if(xSubStr === "") {
+								x = 1;
+							}
+							else if(!isNaN(xSubStr)) {
+								x = Number(xSubStr);
+							}
+							
+							if((ySubStr == "") || (ySubStr == null)) {
+								y = 0;
+							}
+							else {
+								console.log(ySubStr);
+								let sign = ySubStr.charAt(0);
+								if(!isNaN(ySubStr)) {
+									y = Number(ySubStr);
+								}
+								else if(sign == "+") {
+									y = Number(ySubStr.substring(1));
+								}
+								else {
+									console.log("Junk y-value");
+									return;
+								}
+							}
+							console.log("X: " + x + ", Y: " + y);
+							let farX = maxIntervalsShown + (distFromEdge / distBetweenPoints);
+							let zeroedX = y;
+							let zeroedY = (-1 * y) / x;
+							let sideX = x * farX + y;
+							console.log(sideX);
+							let sideY = (upperScaleVal - y) / x;
+							let points = [];
+							if((zeroedX <= upperScaleVal) && (zeroedX >= minValue)) {
+								points.push([0, zeroedX]);
+							}
+							if((zeroedY >= 0) && (zeroedY <= farX) && (points[0][1] != 0)) {
+								points.push([zeroedY, 0]);
+							}
+							if((sideX <= upperScaleVal) && (sideX >= minValue) && (points[0][0] != farX)) {
+								points.push([farX, sideX]);
+							}
+							if((sideY >= 0) && (sideY <= farX) && (points[0][1] != upperScaleVal)) {
+								points.push([sideY, upperScaleVal]);
+							}
+							console.log(points);
+							console.log(points[0]);
+							console.log(points[1]);
+							
+							if(points.length != 2) {
+								alert("Doesn't fit in graph");
+								return;
+							}
+							else {
+								updateCanvas(false);
+								var ctx = document.getElementById("myCanvas").getContext("2d");
+								ctx.beginPath();
+								
+								for(let i = 0; i < points.length; i++) {
+									let tempX = getScaledXValue(points[i][0]);
+									let tempY = getScaledYValue(points[i][1]);
+									if(i == 0) {
+										ctx.moveTo(tempX, tempY);
+									}
+									else {
+										ctx.lineTo(tempX, tempY);
+									}
+									
+									let coordsString = "(" + parseFloat(points[i][0].toFixed(2)) + ", " + parseFloat(points[i][1].toFixed(2)) + ")";
+									console.log(coordsString);
+									ctx.fillText(coordsString, tempX - (ctx.measureText(coordsString).width / 2), tempY - 6);
+								}
+								
+								setStroke("blue");
+								ctx.stroke();
+								ctx.closePath();
+								updateUpdater("Set Diag line at: " + text);
+							}
+						}
+						else if(!isNaN(ySubStr)) {
+							document.getElementById("setline").value = ySubStr;
+							setLineOnGraph();
+						}
+						else {
+							alert("Incorrect Format: (mx + b) where -m- is slope and -b- is y-intercept");
+						}
+					}
+					else {
+						if(!isNaN(text)) {
+							document.getElementById("setline").value = text;
+							setLineOnGraph();
+						}
+					}
+				}
+			}
+			
+			//Make visible horizontal line on graph
+			function setLineOnGraph() {
+				var text = document.getElementById("setline").value;
+				var yVal = parseFloat(text);
+				if((yVal <= upperScaleVal) && (yVal >= minValue)) {
+					var ctx = document.getElementById("myCanvas").getContext("2d");
+					ctx.beginPath();
+					var pixelY = getScaledYValue(yVal);
+					ctx.moveTo(defaultRectX, pixelY);
+					ctx.lineTo(defaultRectX + rectWidth, pixelY);
+					ctx.fillText(yVal.toFixed(2).toString(), defaultRectX - 40, pixelY - 6);
+					setStroke('blue');
+					ctx.stroke();
+					updateUpdater("Set line at: " + text);
+					ctx.closePath();
+				}
+				else {
+					alert("Can not set a line there");
+				}
+			}
+			
+			//Find number of linear y-axis intersections
+			function getNumOfIntersections(yVal, valueList=values) {
+				if(valueList.length > 0) {
+					var times = 0; //Times it's crossed
+					var firstPoint = valueList[0];
+					var positionHigh; //High vs low
+					var onPoint = false; //Directly lying on point
+					
+					//Set first point
+					if(firstPoint > yVal) {
+						positionHigh = true;
+					}
+					else if(firstPoint < yVal) {
+						positionHigh = false;
+					}
+					else {
+						times++;
+						onPoint = true;
+					}
+					
+					//Go through rest of points
+					for(var i = 1; i < valueList.length; i++) {
+						if((valueList[i] < yVal) && positionHigh && !onPoint) {
+							times++;
+							positionHigh = false;
+						}
+						else if((valueList[i] > yVal) && !positionHigh && !onPoint) {
+							times++;
+							positionHigh = true;
+						}
+						else if(valueList[i] == yVal) {
+							times++;
+							onPoint = true;
+						}
+						else {
+							onPoint = false;
+							positionHigh = (valueList[i] > yVal)
+						}
+					}
+					
+					//Return number of times the point was hit
+					return times;
+				}
+				else {
+					return 0;
+				}
+			}
+			
+			//Find number of intersections of a graph across the y-axis (y = number)
+			function setIntersections() {
+				var text = document.getElementById("intersecs").value;
+				//Set paragraph to display the number of intersections
+				document.getElementById("intersecsp").innerHTML = "Intersections: " + getNumOfIntersections(parseFloat(text));
+				updateUpdater("Finding intersections");
+			}
+			
+			//For changing what's happening with finding slope
+			function startStopSlopeFind(stop=false) {
+				var buttonObj = document.getElementById("slopeswitch");
+				//If we should start the test
+				if((buttonObj.innerHTML == "Start") && (!stop)) {
+					updateCanvas(false);
+					findingSlope = true;
+					pointUsed = false;
+					console.log("Now finding slope");
+					buttonObj.innerHTML = "Stop";
+					updateUpdater("Slope Finder On");
+					pointCommand = "slope";
+				}
+				else {
+					//Should we even turn it off if we aren't finding it in the first place?
+					if(findingSlope) {
+						findingSlope = false;
+						console.log("Stopped finding slope");
+						buttonObj.innerHTML = "Start";
+						updateUpdater("Slope Finder Off");
+						pointCommand = "";
+						updateCanvas(false);
+					}
+				}
+			}
+			
+			//For testing graph
+			function makeTestEntry(bool) {
+				if(bool) {
+					//Enters a set of 5 numbers to the graph as a test
+					resetData();
+					dataList = [5, 2, 4, 5, 10];
+					for(var element of dataList) {
+						updateCanvas(true, element, false);
+					}
+				}
+				else {
+					//Enters values from a textarea that acts as CSV
+					var text = document.getElementById("dataentry").value;
+					var elements = (text.replace(/ /g, '')).split(",");
+					if(elements.length > 0) {
+						//Don't add to a previous line
+						newLineIncoming = true;
+						for(var i = 0; i < elements.length; i++) {
+							//Make sure the element is a number in the first place
+							if(!isNaN(elements[i])) {
+								updateCanvas(true, parseFloat(elements[i]), true);
+							}
+							else {
+								console.log("Non-number reached");
+								break;
+							}
+						}
+					}
+				}
+			}
+			
+			function drawSquare(ctx, properXVal, valueClickedX) {
+				//Drawing square around point (0, 0) is top left and (1, 1) is bottom right
+				var sides = [[1, 0], [0, -1], [-1, 0], [0, 0]]; //Describes line movement
+				var squareSize = 10;
+				var xVal = getScaledXValue(properXVal) - (squareSize / 2);
+				var yVal = getScaledYValue(valueClickedX) + (squareSize / 2);
+				
+				ctx.beginPath();
+				ctx.moveTo(xVal, yVal);
+				for(var i = 0; i < 3; i++) {
+					xVal += sides[i][0] * squareSize;
+					yVal += sides[i][1] * squareSize;
+					ctx.lineTo(xVal, yVal);
+				}
+				ctx.closePath();
+				setStroke("blue");
+				ctx.stroke();
+			}
+			
+			function definePoint(ctx) {
+				updateCanvas(false);
+				drawSquare(ctx, lastPointClicked[0], lastPointClicked[1]);
+				alert("Point is: (" + lastPointClicked[0] + ", " + lastPointClicked[1] + ")");
+			}
+			
+			var pointCommand = "";
+			
+			//Find slope between two points on graph
+			function pointClicked(e, valueList=values) {
+				if(pointCommand != "") {
+					//Should we even be finding the slope?
+					//var xPos = e.clientX;
+					//var yPos = e.clientY;
+					//console.log("X: " + xPos + ", Y: " + yPos);
+					
+					//Gets coordinates of how far away from (0,0) on screen the canvas is
+					var cAreaObj = document.getElementById("myCanvas").getBoundingClientRect();
+					var fromTop = cAreaObj.top;
+					var fromLeft = cAreaObj.left;
+					
+					//Allowed pixel click space (20x20)
+					var approxClickSpaceX = 10;
+					var approxClickSpaceY = rectHeight / 40;
+					
+					//Find where user clicked in the rectangle (x,y) coords
+					var rectXClick = e.clientX - fromLeft - defaultRectX;
+					var rectYClick = e.clientY - fromTop - defaultRectY;
+					
+					//Find distance user clicked along the X axis away from a leftside point
+					var distFromPt = rectXClick % distBetweenPoints;
+					//Tets to make sure it's within x limits
+					if((distFromPt < approxClickSpaceX) || (distFromPt > (distBetweenPoints - approxClickSpaceX))) {
+						var properXVal = Math.round(rectXClick / distBetweenPoints);
+						var valuesClickedX = [];
+						for(var i = 0; i < newLineIndexes.length; i++) {
+							if((i < newLineIndexes.length - 1) && ((newLineIndexes[i + 1] - newLineIndexes[i]) > properXVal)) {
+								valuesClickedX.push(values[newLineIndexes[i] + properXVal]);
+							}
+							else if(i == newLineIndexes.length - 1) {
+								if((values.length - newLineIndexes[i]) > properXVal) {
+									valuesClickedX.push(values[newLineIndexes[i] + properXVal]);
+								}
+							}
+						}
+						
+						var valueClickedX = valuesClickedX[0];
+						var minDiff = getScaledYValue(valuesClickedX[0]) - defaultRectY - rectYClick;
+						for(var i = 1; i < valuesClickedX.length; i++) {
+							var diff = getScaledYValue(valuesClickedX[i]) - defaultRectY - rectYClick;
+							if(Math.abs(diff) < Math.abs(minDiff)) {
+								minDiff = diff;
+								valueClickedX = valuesClickedX[i];
+							}
+						}
+												
+						var clickedYVal = getScaledYValue(valueClickedX) - defaultRectY;
+						//Check if click is within y limits
+						if((Math.abs(rectYClick - clickedYVal)) < (approxClickSpaceY * 2)) {
+							//Record and place point
+							var ctx = document.getElementById("myCanvas").getContext("2d");
+							console.log("Point recorded: " + valueClickedX);
+							if(findingSlope || (pointCommand == "slope")) {
+								drawSquare(ctx, properXVal, valueClickedX);
+								
+								//Check if there's already a point on the grpah
+								if(pointUsed) {
+									//If there is, draw a line between the two points
+									ctx.beginPath();
+									ctx.moveTo(getScaledXValue(lastPointClicked[0]),
+												getScaledYValue(lastPointClicked[1]));
+									ctx.lineTo(getScaledXValue(properXVal), getScaledYValue(valueClickedX));
+									ctx.stroke();
+									console.log("Drew line");
+									// (y2 - y1) / (x2 - x1)
+									var slope = (valueClickedX - lastPointClicked[1]) / (properXVal - lastPointClicked[0]);
+									document.getElementById("slopep").innerHTML = "Avg Slope: " + slope.toFixed(6);
+									pointUsed = false;
+									findingSlope = false;
+									document.getElementById("slopeswitch").innerHTML = "Start";
+									pointCommand = "";
+								}
+								else {
+									//If this is the first point, save its location and value
+									//lastPointClicked = [properXVal, valueClickedX];
+									pointUsed = true;
+								}
+							}
+							else {
+								//Dont find it and turn it off
+								startStopSlopeFind(true);
+							}
+							
+							lastPointClicked = [properXVal, valueClickedX];
+							
+							if(pointCommand == "point") {
+								definePoint(ctx);
+							}
+						}
+					}
+				}
+				
+				return -1;
+			}
+			
+			//Input text into the textarea
+			function updateUpdater(text) {
+				document.getElementById("updater").value += text + "\n";
+				//Move textarea view to most recent input
+				var objTa = document.getElementById("updater");
+				objTa.scrollTop = objTa.scrollHeight;
+			}
+			
+			//Sets the graph title. If value is inserted, it sets it to that. Otherwise, the associated textbox
+			function setGraphTitle(valueGiven=false) {
+				var text;
+				if(!valueGiven) {
+					text = document.getElementById("settitle").value;
+				}
+				else {
+					text = valueGiven;
+					document.getElementById("settitle").value = text;
+				}
+				
+				graphTitle = text;
+				
+				//Actually draws the title on the graph
+				ctx = document.getElementById("myCanvas").getContext("2d");
+				currFont = ctx.font;
+				ctx.font = "20px Arial";
+				if(graphTitle != "") {
+					ctx.fillText(graphTitle, getTitleCenterX(graphTitle), defaultRectY - 20);
+				}
+				ctx.font = currFont;
+			}
+			
+			//Unused
+			var allValues = [];
+			var allValuesTemp = [];
+			function saveIt(temp=false) {
+				if(!temp) {
+					allValues.push(values.slice());
+					allValues.push(newLineIndexes.slice());
+					allValues.push(names.slice());
+				}
+				else {
+					allValuesTemp.push(values.slice());
+					allValuesTemp.push(newLineIndexes.slice());
+					allValuesTemp.push(names.slice());
+				}
+			}
+			
+			//Unused
+			function restoreIt() {
+				values = allValues[0];
+				newLineIndexes = allValues[1];
+				names = allValues[2];
+				setMax();
+				if((values.length > 1) && (values.indexOf(minValue) == -1) && (minValue != 0)) {
+					setMin();
+				}
+				setMaxIntervals(findMaxIntervals());
+			}
+            
+            //Parses and calls graph function of CSV file
+            function parseAndGraphCSVFile(filename) {
+				console.log("Looking at: " + filename);
+                //AJAX part
+                var file = new XMLHttpRequest();
+                file.open("GET", filename, false);
+
+                //Got something
+                file.onreadystatechange = function() {
+					var loadObj = document.getElementById("pload");
+					loadObj.style.display = "block";
+					//Response back from file (successful read)
+                    if(this.readyState == 4) {
+                        if((this.status == 200) || (this.status == 0)) {
+							scroll(0, 0);
+							var check = confirm("Press OK to load in received data");
+							if(check) {
+								var txtReceived = this.responseText; //Received csv text
+								//Separate text into respective lines
+								var lines = txtReceived.replace(/ /g, "").split("\n");
+								//Get rid of possible extra line with no data
+								if(lines[lines.length - 1] == "") {
+									lines.splice(lines.length - 1, 1);
+								}
+								
+								var lastNames = lines[0].split(","); //Creates array of first row (where names of each column are)
+								for(var element of lastNames) {
+									names.push(element); //Pushes each name into names array
+								}
+								
+								var dataLines = new Array(lastNames.length); //Array of arrays representing each line
+								for(var i = 0; i < lastNames.length; i++) {
+									//Make new line array for each column
+									dataLines[i] = new Array(lines.length - 1);
+								}
+								
+								//From the 2nd line down, each datapoint in each row should needs
+								//	to be put into its respective column
+								for(var i = 1; i < lines.length; i++) {
+									//Splits the row into its given columns
+									var currLineNums = lines[i].split(",");
+									for(var j = 0; j < currLineNums.length; j++) {
+										//Puts the data into its appropriate column
+										dataLines[j][i - 1] = parseFloat(currLineNums[j]);
+									}
+								}
+   
+								//Don't want canvas to redraw until we are done ehre
+								shouldRedraw = false;
+								//Traverse through each line and update the values list
+								for(var i = 0; i < dataLines.length; i++) {
+									//First point is a new line
+									updateCanvas(true, dataLines[i][0], true, true);
+									for(var j = 1; j < dataLines[i].length; j++) {
+										//Point in line
+										updateCanvas(true, dataLines[i][j], true, false);
+								   }
+								}
+								shouldRedraw = true;
+								updateCanvas(false);
+							}
+                        }
+                    }
+                    
+                    loadObj.style.display = "none";
+                }
+                //Not sending anything
+                file.send(null);
+                return 1;
+            }
+            
+            //Graph CSV file
+            function tryCSVGraph() {
+				//Entered in textarea as: voltages.csv ... Needs to be: /voltages.csv
+				if(parseAndGraphCSVFile("/" + document.getElementById("csvtext").value)) {
+					console.log("Sent to CSV file");
+				}
+				else {
+					console.log("Error occurred");
+				}
+			}
+			
+			function getLineNumber() {
+				var line = prompt("Which line would you like to insert the data into? (0-" + (newLineIndexes.length - 1) + ")");
+				var lineNum = -1;
+				if((line != "") && (line != null)) {
+					if(isNaN(line)) {
+						lineNum = names.indexOf(line);
+						if(lineNum == -1) {
+							alert("Invalid line");
+							return -1;
+						}
+					}
+					else {
+						lineNum = Number(line);
+						if(!((lineNum >= 0) && (lineNum < newLineIndexes.length))) {
+							alert("Invalid line");
+							return -1;
+						}
+					}
+				}
+				
+				return lineNum;
+			}
+			
+			//Insertion of data into a specific slot of a line or just appending it
+			function dataInsert() {
+				if(newLineIndexes.length > 0) {
+					var lineNum = getLineNumber();
+					if(lineNum != -1) {
+						var dataValue = prompt("Enter (Y) OR ((Y) and (Line Place)) value of data in CSV style");
+						if((dataValue != "") && (dataValue != null)) {
+							var values = dataValue.replace(/[ ()]/g, "").split(",");
+							//.replace(/ |(|)/g...
+							console.log(values);
+							if((values.length > 0) && (values.length <= 2)) {
+								if(values.length == 1) {
+									updateCanvas(true, Number(values[0]), true, false, lineNum);
+								}
+								else {
+									updateCanvas(true, Number(values[1]), true, false, lineNum, (values[0] + newLineIndexes[lineNum]));
+								}
+							}
+						}
+					}
+				}
+				else {
+					alert("There is not multiple lines in your data. No need to use insert");
+				}
+			}
+			
+			//Delete line
+			function deleteLine(temp=false, ask=true, optionalLine=-1) {
+				if(newLineIndexes.length > 0) {
+					var lineNum;
+					if(ask) {
+						alert("Consider saving before continuing");
+						lineNum = getLineNumber();
+					}
+					else {
+						lineNum = optionalLine;
+					}
+					console.log("Attempting to delete Line num: " + lineNum);
+					
+					if(lineNum != -1) {
+						if(!temp) {
+							var check = confirm("Are you sure you'd like to delete line " + lineNum);
+						}
+						else {
+							var check = true;
+						}
+						
+						if(check) {
+							var index = newLineIndexes[lineNum];
+							if(lineNum == newLineIndexes.length - 1) {
+								values.splice(index, values.length - index);
+							}
+							else {
+								values.splice(index, newLineIndexes[lineNum + 1] - index);
+							}
+							
+							console.log(values);
+							
+							if(names.length > index) {
+								names.splice(lineNum, 1);
+							}
+							
+							if(index != newLineIndexes.length - 1) {
+								let indexInterval  = newLineIndexes[lineNum + 1] - index;
+								newLineIndexes.splice(lineNum, 1);
+								for(let i = lineNum; i < newLineIndexes.length; i++) {
+									newLineIndexes[i] -= indexInterval;
+								}
+							}
+							
+							setMax();
+							if((values.length > 1) && (values.indexOf(minValue) == -1) && (minValue != 0)) {
+								setMin();
+							}
+							setMaxIntervals(findMaxIntervals());
+						}
+					}
+				}
+				else {
+					alert("There is not multiple lines in your data. No need to use insert");
+				}
+			}
+			
+			//Delete multiple lines at once
+			function multiLineDelete(temp) {
+				var lines = prompt("List line(s) to delete (0) or (0-3) or (0, 2, 3) or (0-2, 4)");
+				if(lines) {
+					var numInputs = lines.replace(/[() ]/g, "").split(",");
+					let numOfDeletes = 0;
+					for(var element of numInputs) {
+						let hyphenIndex = element.indexOf("-");
+						if(hyphenIndex > -1) {
+							let startIndex = Number(element.substring(0, hyphenIndex));
+							let endIndex = Number(element.substring(hyphenIndex + 1));
+							for(let i = startIndex; i <= endIndex; i++) {
+								deleteLine(temp, false, i - numOfDeletes);
+								numOfDeletes++;
+							}
+						}
+						else {
+							deleteLine(temp, false, Number(element) - numOfDeletes);
+							numOfDeletes++;
+						}
+					}
+				}
+			}
+			
+			//Delete multiple lines at once with the option of keeping or discarding changes
+			function tempDeleteLines() {
+				alert("Consider saving before continuing");
+				var holdValues = values.slice();
+				var holdIndexes = newLineIndexes.slice();
+				var holdNames = names.slice();
+				
+				do {
+					multiLineDelete(true);
+				}
+				while(confirm("Continue Deleting?"));
+				
+				if(!confirm("Keep Changes?")) {
+					values = holdValues;
+					newLineIndexes = holdIndexes;
+					names = holdNames;
+					setMax();
+					if((values.length > 1) && (values.indexOf(minValue) == -1) && (minValue != 0)) {
+						setMin();
+					}
+					setMaxIntervals(findMaxIntervals());
+				}
+			}
+			
+			function showTempLines() {
+				var lines = prompt("List line(s) to show (0) or (0-3) or (0, 2, 3) or (0-2, 4)");
+				if(lines) {
+					scroll(0, 0);
+					let numInputs = lines.replace(/[() ]/g, "").split(",");
+					var holdValues = values.slice();
+					var holdIndexes = newLineIndexes.slice();
+					var holdNames = names.slice();
+					let numDeleted = 0;
+					for(let i = 0; i < newLineIndexes.length; i++) {
+						if(numInputs.indexOf(i.toString()) == -1) {
+							deleteLine(true, false, Number(i) - numDeleted);
+							numDeleted++;
+						}
+					}
+					
+					if(!confirm("Keep Changes?")) {
+						values = holdValues;
+						newLineIndexes = holdIndexes;
+						names = holdNames;
+						setMax();
+						if((values.length > 1) && (values.indexOf(minValue) == -1) && (minValue != 0)) {
+							setMin();
+						}
+						setMaxIntervals(findMaxIntervals());
+					}
+				}
+			}
+			
+			//Returns a substring of a URL from a certain string to a special character
+			function getCorrectSubstr(url, testStr, specialChar=";") {
+				url = decodeURI(url); //Convert URL from Unicode to UTF-8
+				var strIndex = url.indexOf(testStr);
+				//Test if string is even in the url
+				if(strIndex > -1) {
+					var newURL = url.substring(strIndex + testStr.length);
+					var newStrIndex = newURL.indexOf(specialChar);
+					var useURL = newURL.substring(0, newStrIndex);
+					
+					//Returns the URL if the special character was in the URL somewhere.
+					//Otherwise return the URL from the string to the end
+					return (newStrIndex > -1) ? useURL : newURL;
+				}
+				else {
+					return 0;
+				}
+			}
+			
+			//Parse URL data upon loading window to graph
+			function parseURLData(url) {
+				var retStr;
+				
+				//Check if there is an associated title
+				retStr = getCorrectSubstr(url, "title=");
+				if(retStr) {
+					setGraphTitle(retStr);
+				}
+				
+				//Find the associated data
+				var dataList;
+				retStr = getCorrectSubstr(url, "numbers=");
+				if(retStr) {
+					dataList = retStr.split(",");
+					if(dataList[0].indexOf("$") == -1) {
+						dataList[0] = "$" + dataList[0];
+					}
+				}
+				
+				//Set maxIntervals to the number of points we need
+				//setMaxIntervals(dataList.length / (retStr.split("$").length - 1));
+				for(var element of dataList) {
+					//Check to see if it's a newline (in URL, it's hinted with a $)
+					if(element.charAt(0) == "$") {
+						element = element.substring(1);
+						if(isNaN(element)) {
+							console.log(element);
+							var i = 1;
+							while((isNaN(element.charAt(i))) && (i < element.length)) {
+								i++;
+							}
+							lineName = element.substring(0, i);
+							names.push(lineName);
+							element = Number(element.substring(i));
+						}
+						else {
+							element = Number(element);
+						}
+						
+						updateCanvas(true, element, true, true);
+					}
+					else {
+						element = Number(element);
+						updateCanvas(true, element, true);
+					}
+				}
+			}
+			
+			//What to do upon loading a window
+			window.onload = function() {
+				window.setInterval(updateCanvasAuto, 1000);
+				document.getElementById("updater").value = "";
+				document.getElementById("setline").value = "";
+				document.getElementById("settitle").value = "";
+				//document.getElementById("dataentry").value = "";
+				//values.push(0);
+				console.log("Start");
+				
+				//There is data that was sent in the URL
+				if(document.URL.indexOf("?") > -1) {
+					if(document.URL.indexOf("fromElse=true") > -1) {
+						//Start parsing through our data, as it's meant to be graphed
+						parseURLData(document.URL);
+					}
+				}
+			}
+		</script>
+		<style>
+			body {
+				text-align: center;
+			}
+			
+			canvas#myCanvas {
+				border: 2px solid black;
+			}
+			
+			div#options {
+				border: 2px solid black;
+				vertical-align: middle;
+				text-align: center;
+				display: table;
+				margin: 0 auto;
+			}
+			
+			div#options .suboption {
+				border: 1px solid black;
+				display: table-cell;
+				padding: 30px;
+				vertical-align: middle;
+				max-width: 225px;
+			}
+			
+			div#options div.newrow {
+				display: table-row;
+			}
+			
+			.suboption button, label {
+				display: block;
+				margin: 0 auto;
+			}
+			.suboption textarea {
+				text-align: center;
+				resize: none;
+			}
+			
+			.suboption input[type="checkbox"] {
+				margin: 0;
+				padding: 0;
+			}
+			
+			.suboption span.title {
+				display: inline-block;
+				vertical-align: top;
+				margin: 0;
+				padding: 0;
+				font-size: 0.9em;
+				margin-bottom: 10px;
+			}
+			
+			.suboption fieldset[name="hello"] {
+				border: 1px dashed black;
+			}
+			
+			.suboption textarea#updater {
+				width: 100%;
+				height: 3em;
+				vertical-y: scroll;
+				font-size: 1em;
+			}
+			
+			.suboption label#data {
+				text-decoration: underline;
+			}
+			
+			.suboption p {
+				text-align: center;
+			}
+			
+			#datap {
+				width: 90%;
+				text-align: center;
+				font-size: 0.75em;
+				display: none;
+			}
+			
+			#pload {
+				position: absolute;
+				top: 10%;
+				left: 40%;
+				z-index: 2;
+				display: none;
+				font-size: 2em;
+			}
+			
+			#infop {
+				text-align: center;
+				font-size: 1.5em;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="myCanvas" height="500" width="1100"></canvas>
+		<p id="pload">LOADING...</p>
+		<button onclick="restoreIt(true)">Restore before Temp Values</button>
+		<script>
+			canvasSetup(document.getElementById("myCanvas").getContext("2d"));
+			document.getElementById("myCanvas").addEventListener("click", pointClicked, false);
+		</script>
+		<p id="infop"></p>
+		<div id="options">
+			<div class="newrow" id="firstrow">
+				<div class="suboption">
+					<label for="title">Send Data Point</label>
+					<textarea rows="1" id="ta" value="0" autocomplete="off" name="title">0</textarea>
+					<button onclick="sendNewValue()">Send</button>
+				</div>
+				<div class="suboption">
+					<label for="minvalue">Set Minimum Value</label>
+					<textarea rows="1" id="minvalue" name="minvalue" value="0" autocomplete="off">0</textarea>
+					<button onclick="setMinValue()">Send</button>
+				</div>
+				<div class="suboption" style="text-align:left;">
+					<fieldset name="hello">
+						<input type="checkbox" id="showdata" onclick="checkboxChanged('showdata')" autocomplete="off">
+						<span class="title">Show Values</span><br>
+						<input type="checkbox" id="intervalgrab" onclick="checkboxChanged('intervalgrab')" autocomplete="off">
+						<span class="title">Grab on Interval</span><br>
+						<input type="checkbox" id="setmax" onclick="checkboxChanged('setmax')" autocomplete="off">
+						<span class="title">Limit Current Max</span><br>
+						<input type="checkbox" id="setmin" onclick="checkboxChanged('setmin')" autocomplete="off">
+						<span class="title">Limit Current Min</span>
+						<button id="reset" onclick="resetData()">Reset Data</button>
+						<!--<input type="checkbox" class="minimize" onclick="minimizeArea('firstrow')" autocomplete="off">
+						<span class="title">Show Data Point Values</span>-->
+					</fieldset>
+				</div>
+				<div class="suboption">
+					<label for="showintervals">Set Max Interval Amnt</label>
+					<textarea rows="1" id="showintervals" name="showintervals" value="5" autocomplete="off">5</textarea>
+					<button onclick="setMaxIntervals()">Send</button>
+				</div>
+				<div class="suboption">
+					<label for="changescale">Set Scale %</label>
+					<textarea rows="1" id="changeScalePercent" name="changeScalePercent" value="80" autocomplete="off">80</textarea>
+					<button onclick="setScalePercent()">Send</button>
+				</div>
+			</div>
+			<div class="newrow">
+				<div class="suboption">
+					<!--<label for="savedamount">Set Actual Saved Amnt</label>
+					<textarea rows="1" id="savedamount" name="savedamount" value="5" autocomplete="off">5</textarea>
+					<button onclick="setValsAllowed()">Send</button>-->
+				</div>
+				<div class="suboption">
+					<label for="setmaxlimit">Set Current Max</label>
+					<textarea rows="1" id="setmaxlimit" name="setmaxlimit" value="0" autocomplete="off">0</textarea>
+					<button onclick="setMaxValue()">Send</button>
+				</div>
+				<div class="suboption">
+					<textarea readonly id="updater" value="" autocomplete="off"></textarea>
+				</div>
+				<div class="suboption">
+					<label for="setedge">Set Edge Distance</label>
+					<textarea rows="1" id="setedge" name="setedge" value="100" autocomplete="off">100</textarea>
+					<button onclick="setEdgeDistance()">Send</button>
+				</div>
+				<div class="suboption" style="text-align: center;">
+					<input type="checkbox" id="seedata" onclick="checkboxChanged('seedata')" autocomplete="off">
+					<span class="title">See Saved Data</span><br>
+					<p id="datap"></p>
+				</div>
+			</div>
+			<div class="newrow" style="text-align: center;">
+				<div class="suboption">
+					<label for="settitle">Set Graph Title</label>
+					<textarea rows="2" id="settitle" name="settitle" value="" autocomplete="off"></textarea>
+					<button onclick="setGraphTitle()">Send</button>
+				</div>
+				<div class="suboption">
+					<button onclick="saveIt()">Save Current Canvas</button>
+					<button onclick="saveIt()">Restore Saved Canvas</button>
+				</div>
+				<div class="suboption">
+					<fieldset name="hello">
+						<input type="checkbox" id="adaptintervals" onclick="checkboxChanged('adaptintervals')"
+							 autocomplete="off" checked>
+						<span class="title">Adapting Intervals</span><br>
+					</fieldset>
+				</div>
+				<div class="suboption">
+					<label for="diagline">Diag Line (mx+b)</label>
+					<textarea rows="1" id="diagline" name="diagline" value="" autocomplete="off"></textarea>
+					<button onclick="setDiagOnGraph()">Send</button>
+				</div>
+                <div class="suboption">
+                   <input type="checkbox" id="newline" onclick="checkboxChanged('newline')"
+                         autocomplete="off" checked>
+                    <span class="title">Make New Line</span><br>
+                    <input type="checkbox" id="linecolor" onclick="checkboxChanged('linecolor')"
+                         autocomplete="off">
+                    <span class="title">Use Colored Lines</span><br>
+                    <input type="checkbox" id="allownames" onclick="checkboxChanged('allownames')"
+                         autocomplete="off">
+                    <span class="title">Use Names For Lines</span><br>
+                </div>
+			</div>
+			<div class="newrow">
+				<div class="suboption">
+					<label for="setline">Show Horiz Line</label>
+					<textarea rows="1" id="setline" name="setline" value="" autocomplete="off"></textarea>
+					<button onclick="setLineOnGraph()">Send</button>
+				</div>
+				<div class="suboption">
+					<label for="findintersecs">Find Intersections (Y)</label>
+					<textarea rows="1" id="intersecs" name="findintersecs" value="" autocomplete="off"></textarea>
+					<button onclick="setIntersections()">Send</button>
+					<p id="intersecsp">Intersections: 0</p>
+				</div>
+				<div class="suboption">
+					<button id="testentry" onclick="makeTestEntry(true)">Test Entry (default)</button>
+					<label for="dataentry">Data Values (CSV)</label>
+					<textarea value="" name="dataentry" id="dataentry"></textarea>
+					<button onclick="makeTestEntry(false)">Send</button>
+				</div>
+				<div class="suboption">
+					<label for="findintersecs">Find Slope</label>
+					<button id="slopeswitch" onclick="startStopSlopeFind()">Start</button>
+					<p id="slopep">Avg Slope: 0</p>
+				</div>
+				<div class="suboption">
+					<button onclick="updateCanvas(false)">Reset graph</button>
+				</div>
+			</div>
+			<div class="newrow">
+				<div class="suboption">
+					<label for="csvtext">Graph CSV</label>
+					<textarea value="" name="csvtext" id="csvtext"></textarea>
+					<button onclick="tryCSVGraph()">Send</button>
+				</div>
+				<div class="suboption">
+					<input type="checkbox" id="automin" onclick="checkboxChanged('automin')"
+                         autocomplete="off">
+                    <span class="title">Auto Min Update</span><br>
+                    <input type="checkbox" id="reportPoint" onclick="checkboxChanged('reportPoint')"
+                         autocomplete="off">
+                    <span class="title">Report Clicked Points</span><br>
+				</div>
+				<div class="suboption">
+					<button onclick="dataInsert()">Insert Data</button>
+					<button onclick="deleteLine()">Delete Line</button>
+					<button onclick="tempDeleteLines()">Run Temp Delete</button>
+				</div>
+				<div class="suboption">
+					<button onclick="showTempLines()">Show Some Lines</button>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

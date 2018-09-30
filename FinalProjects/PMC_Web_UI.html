@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Web PMC</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- <link rel="stylesheet" type="text/css" href="screen.css"> -->
+		<meta charset="UTF-8">
+		<style>
+			div#mainscreen {
+				position: absolute;
+				left: 0;
+				right: 0;
+				margin: 0vw auto;
+				width: 600px;
+				height: 5vw;
+				line-height: 5vw;
+				border-radius: 0.5vw;
+				border: 0px hidden red;
+				background-color: rgb(0, 128, 0);
+				color: rgb(255, 255, 0);
+				text-align: center;
+				font-size: 2vw;
+				z-index: 2;
+			}
+			
+			span#screen {
+				display: inline-block;
+				vertical-align: middle;
+				line-height: normal;
+			}
+			
+			button#minbut {
+				display: none;
+				height: auto;
+				width: auto;
+				color: yellow;
+				font-size: 2vw;
+				background-color: green;<!--rgb(200, 200, 200)-->
+				margin: 0;
+				float: right;
+				border: 0;
+			}
+			
+			button#minbut:hover {
+				background-color: rgb(50, 50, 50);
+				color: white;
+				font-weight: bold;
+			}
+			
+			div#bigdiv {
+				margin-left: 2.5vw;
+				width: 95%;
+				height: auto;
+				margin-bottom: 0;
+				padding-top: 2vw;
+				padding-top: 2vw;
+				position: absolute;
+				top: 12vw;
+				z-index: -1;
+			}
+			
+			#buttons {
+				display: inline-block;
+				width: 40vw;
+				height: 28vw;
+				border: 2px hidden;
+				padding: 1vw;
+				padding-bottom: 0vw;
+				margin-bottom: 0;
+			}
+			
+			button {
+				text-align: center;
+				display: inline-block;
+				height: 7vw;
+				width: 9vw;
+				color: white;
+				background-color: rgb(20, 20, 20);
+				margin: 2px;
+				alignment-baseline: middle;
+				vertical-align: top;
+				font-size: 1.4vw;
+			}
+			
+			button:hover {
+				background-color: rgb(150, 150, 150) !important;
+				color: rgb(20, 20, 20) !important;
+				font-weight: bold;
+			}
+			
+			#keypad {
+				vertical-align: top;
+				display: inline-block;
+				width: 25vw;
+				height: 28vw;
+				border: 2px hidden;
+				padding: 1vw 0vw 0vw 3vw;
+				padding-top: 4vw;
+			}
+			
+			.keybuttons {
+				vertical-align: center;
+				position: relative;
+				font-size: 3.5vw;
+				text-align: center;
+				display: inline-block;
+				height: 4vw;
+				width: 6vw;
+				color: rgb(20, 20, 20);
+				background-color: rgb(255, 255, 255, 0.8);
+				margin: 1vw 1vw;
+			}
+			
+			button.keybuttons:hover {
+				background-color: rgb(20, 20, 20);
+				color: white;
+				font-weight: bold;
+			}
+			
+			#unitpad {
+				vertical-align: top;
+				display: inline-block;
+				width: 6vw;
+				height: 28vw;
+				border: 2px hidden;
+				padding: 1vw;
+				padding-top: 4vw;
+				padding-bottom: 0vw;
+			}
+			
+			.unitbuts {
+				vertical-align: center;
+				position: relative;
+				font-size: 1.5vw;
+				text-align: center;
+				display: inline-block;
+				height: 4vw;
+				width: 6vw;
+				margin: 1vw 1vw;
+			}
+			
+			#otherpad {
+				vertical-align: top;
+				display: inline-block;
+				width: 6vw;
+				height: 30vw;
+				border: 2px hidden;
+				padding: 4vw 1vw 0vw 5vw;
+			}
+			
+			.otherbuts {
+				vertical-align: center;
+				position: relative;
+				font-size: 1.5vw;
+				text-align: center;
+				display: inline-block;
+				height: 4vw;
+				width: 6vw;
+				margin: 1vw 1vw;
+			}
+			
+			#circlething {
+				margin-top: 0;
+				width: 10vw;
+				height: 8vw;
+				/* border: 1.5px solid black;
+				background-color: white;
+				border-radius: 50%; */
+				margin-left: 5vw;
+				vertical-align: center;
+				float: left;
+				text-align: center;
+				line-height: normal;
+				padding-top: 1vw;
+			}
+			
+			p#V5{
+				float:left;
+				margin-left: 3vw;
+				margin-right: 3vw;
+				width: 5vw;
+				height: 4vw;
+				font-size: 1.5vw;
+				border-radius: 50%;
+				text-align:center;
+				border: 2px solid black;
+				background-color: black;
+				color: white;
+				vertical-align: center;
+				padding-top: 1vw;
+			}
+			
+			span.circle {
+				border: 1px solid black;
+				margin: 0vw 0.5vw;
+				background-color: rgb(20, 20, 20);
+				color: white;
+			}
+			
+			button.topRight {
+				background-color: blue;
+				color: white;
+			}
+			
+			button.topRight:hover {
+				background-color: yellow;
+				color: black;
+				font-weight: bold;
+			}
+			
+			button#instructions {
+				display: inline;
+				border: 1.5px solid black;
+				border-radius: 40%;
+				width: 6vw;
+				height: 6vw;
+				margin-right: 2vw;
+				float: right;
+				font-size: 3vw;
+				font-weight: bold;
+			}
+			
+			button#instrucsdone {
+				border: 2px solid black;
+				width: 15vw;
+				height: 2.5vw;
+				font-size: 1.5vw;
+				margin: 1vw 0vw 2vw 0vw;
+				vertical-align: center;
+			}
+			
+			button#led_but {
+				margin: 0vw 2vw;
+				display: inline;
+				border: 1.5px solid black;
+				border-radius: 40%;
+				width: 8vw;
+				height: 6vw;
+				float: right;
+			}
+			
+			p#pinstrucs {
+				margin: 0 auto;
+				width: 80%;
+				height: auto;
+				text-align: left;
+			}
+			
+			#instrucdiv {
+				position: absolute;
+				top: 105%;
+				left: 10%;
+				width: 80%;
+				height: auto;
+				text-align: center;
+				display: none;
+				border: 2px solid black;
+				/*-webkit-column-count: 2; /* Chrome, Safari, Opera 
+				-moz-column-count: 2; /* Firefox 
+				column-count: 2;*/
+				margin-bottom: 10vw;
+			}
+			
+			span.list {
+				text-decoration: underline;
+				font-weight: bold;
+			}
+			
+			#ta {
+				position: absolute;
+				top: 48vw;
+				left: 35%;
+				overflow-y: scroll;
+				height: 2vw;
+				width: 30%;
+				resize: none;
+				text-align: center;
+				font-size: 1.5vw;
+				margin: 0;
+			}
+			
+			body {
+				margin: 0;
+				margin-top: 2vw;
+				padding: 0;
+				overflow: scroll;
+				text-align: center;
+				background-color: rgb(230, 220, 100);
+			}
+			
+			button#webmoats {
+				position: absolute;
+				top: 52vw;
+				width: 100px;
+				height: 50px;
+				left: 0;
+				right: 0;
+				margin: 0 auto;
+				text-align: center;
+				background-color: silver;
+				color: black;
+			}
+		</style>
+		<script>
+			/*
+			 * --------------- IMPORTANT INFO ------------------
+			 * Unit mode = input that involves a numerical and unit input (VOLTAGE, FREQ, PF...)
+			 * Unit = input that describes numerical input (V, A, HZ... V/A, W/HZ)
+			*/
+			console.log("Start of Webpage\n");
+			
+			var waitingOnServer = false;
+			
+			//For remembering what unit should go with numerical input and if there should be numerical input
+			var can_nums = [false, null];
+			
+			//Stack for the Textarea of last showNum inputs
+			var stack = [];
+			var showNum = 10;
+			var shouldClear = false;
+			var firstClick = true;
+			
+			//For getLedStatus()
+			var intervalName;
+			var shouldGetStatus = false;
+			var ledCheckTime = 5000;
+			
+			//For numerical inputs. Make sure AcK is received before sending the button press
+			var gotAck = false;
+			var specialCase = false;
+			var unit;
+			var lastInserted = "";
+			var lastButtonInsert = "";
+			var unitArr = ["VOLTAGE", "CURRENT", "FREQ", "POWER", "PF", "PHASE"];
+			var unitArrPoss;
+			var currentNum = "";
+			
+			//For initial startup upon receiving LEDs
+			var importanceRanks = [ "VOLTAGE", "CURRENT", "FREQ", "PF", "PHASE", "POWER", 
+									"SYNCHR", "60HZ", "400HZ", "DC", "RESET", "STORE", "NORMAL"
+									];
+			var importantIndex = 35;
+			
+			//For inputs that require specific screen actions on start up or upon entering
+			function specialActions(str) {
+				var screen = document.getElementById("screen");
+				switch(str) {
+					case "RESET":
+						screen.innerHTML = "DC, 60Hz, or 400Hz";
+						shouldClear = true;
+						break;
+					case "60HZ":
+					case "400HZ":
+						screen.innerHTML = "FREQ: " + str;
+						can_nums = [true, "FREQ"];
+						currentNum = "";
+						shouldClear = false;
+						if(stack.length != 0) {
+							stack[stack.length - 1] = "FREQ: " + str; 
+						}
+						else {
+							stack.push("FREQ: " + str);
+						}
+						break;
+					case "CLEAR":
+						screen.innerHTML = "UP=yes DN=no to clear";
+						break;
+					default:
+						//If it's a unit mode input
+						if((unitArr.indexOf(str)) > -1) {
+							screen.innerHTML = str + ": ";
+							can_nums = [true, str];
+							currentNum = "";
+							shouldClear = false;
+							if(stack.length != 0) {
+								stack[stack.length - 1] = str + ": ";
+							}
+							else {
+								stack.push(str + ": ");
+							}
+						}
+						break;
+				}
+			}
+			
+			//On the initial startup, consider the LEDs received
+			function takeInitialActions() {
+				for(var element of currOn) {
+					//Get the string version of the LED number
+					var elementStr = mapLeds[element];
+					
+					//Get index of where LED number would be in importance
+					var tmpIndex = importanceRanks.indexOf(elementStr);
+					
+					//Check if this action takes precedence over all other actions
+					if(tmpIndex > -1) {
+						importantIndex = Math.min(importantIndex, tmpIndex);
+					}
+					
+					//Do action of CURRENT LED
+					specialActions(elementStr);
+				}
+				
+				//Re-do action of MOST important LED
+				specialActions(importanceRanks[importantIndex]);
+			}
+			
+			//Get the status of the LEDs
+			function getLedStatus() {
+				if((!waitingOnServer) && shouldGetStatus) {
+					ajaxpart("led_status");
+				}
+			}
+			
+			//Calls the getLedStatus() function to receive after so many milliseconds
+			function forFirst() {
+				if(shouldGetStatus) {
+					intervalName = setInterval(getLedStatus, ledCheckTime);
+				}
+				else {
+					clearInterval(intervalName);
+				}
+			}
+			
+			//Turn an LED "on"
+			function setButtonBackOn(id) {
+				//For operate LED
+				if(id == "OPER") {
+					document.getElementById(id).style.backgroundColor = "red";
+				}
+				else {
+					document.getElementById(id).style.backgroundColor = "orange";
+				}
+				
+				document.getElementById(id).style.color = "black";
+			}
+			
+			//Turn an LED "off"
+			function setButtonBackOff(id) {
+				document.getElementById(id).style.backgroundColor = "rgb(20, 20, 20)";
+				document.getElementById(id).style.color = "white";			
+			}
+			
+			var cancelAjaxFunc = false;
+			
+			function changeAjax() {
+				cancelAjaxFunc = !cancelAjaxFunc;
+				console.log("Ajax changed");
+			}
+			
+			/*function isInRange(unitMode, num) {
+				switch(unitMode) {
+					case "VOLTAGE":
+						
+				}
+			}*/
+			
+			function changeScreenIf(shouldChange) {
+				if(shouldChange) {
+					changeScreen();
+				}
+			}
+			
+			//If one of the regular buttons on the PMC would be pressed
+			function button_clicked(str) {
+				
+				//Make sure that the server can receive data (not dealing with it)
+				if(waitingOnServer) {
+					alert("Please wait until server has responded to previous actions before making actions");
+					return;
+				}
+				//Start the getLedStatus if a button has been clicked and it's not running
+				if(firstClick && shouldGetStatus) {
+					firstClick = false;
+					forFirst();
+				}
+				
+				var done = false; //For only keys that involve numerical inputs after
+				
+				var screenChanged = false;
+				
+				//Change the screen to minimzed if in fullscreen mode
+				if(stackShowing) {
+					changeScreen();
+					screenChanged = true;
+				}
+				
+				console.log("String sent from button press: " + str);
+				
+				//Clear the green screen
+				if(shouldClear) {
+					clearScreen();
+				}
+				
+				var onscreen = document.getElementById("screen").innerHTML;
+				
+				/*
+				 * Those select few keys that require numerical input after
+				 * Make sure that a unit mode entry isn't already active
+				*/
+				
+				if((lastButtonInsert == "RESET") || (currOn.indexOf(mapLeds.indexOf("RESET")) > -1)) {
+					var resetArr = ["DC", "60HZ", "400HZ"];
+					if((resetArr.indexOf(str)) == -1) {
+						alert("Must enter [DC],[60HZ],[400HZ]");
+						specialActions("RESET");
+						if(screenChanged) {
+							changeScreen();
+						}
+						return;
+					}
+				}
+				
+				//Check if it's a unit mode entry
+				if((unitArr.indexOf(str)) > -1) {
+					/*var check = confirm("Are you sure you'd like a number with units? This is needed after entering " + str + ".");
+					if(!check) {//Not OK
+						document.getElementById("screen").innerHTML = lastInserted;
+						if(screenChanged) {
+							changeScreen();
+						}
+						return;
+					}*/
+					
+					//No other unit mode has been entered
+					done = true;
+				}
+				
+				//If it's a special key that was pressed for sending numerical data
+				if((str.indexOf("/") > -1) && (!done)) {
+					//Make sure that a unit is a valid entry
+					if(!can_nums[0]) {
+						alert("A unit entry must be entered AFTER a unit mode (ie VOLTAGE) and a value.");
+						document.getElementById("screen").innerHTML = lastInserted; //Change the screen text to the last input
+						if(screenChanged) {
+							changeScreen();
+						}
+						shouldClear = true;
+						return;
+					}
+					
+					var tmp = "";
+					//Test to make sure the text on the screen is a number currently
+					if(isNaN(onscreen.replace(can_nums[1] + ": ", ""))) { //Not a number
+						alert("Number needed to be inserted with units");
+						document.getElementById("screen").innerHTML = lastInserted;
+						if(screenChanged) {
+							changeScreen();
+						}
+						shouldClear = true;
+						return;
+					}
+					
+					/*
+					 * PF and PHASE can be on concurrently with FREQ, CURR, VOLT
+					 * This deals with if the user inputs a value and unit thats
+					 * in PF or PHASE, while it says another mode above
+					*/
+					function pFOrPH() {
+						var changeStr; //Can be PF or PHASE
+						
+						//LED number of Power Factor is on
+						if(currOn.indexOf(19) > -1) {
+							changeStr = "PF";
+						}
+						
+						//LED number of PHASE is on
+						else if(currOn.indexOf(20) > -1) {
+							changeStr = "PHASE";
+							tmp = "DEG";
+						}
+						else {
+							//Needed for the switch statement evaluation below
+							return false;
+						}
+						
+						//Set values so it is in regards to the updated unit mode with the entry
+						can_nums[1] = changeStr;
+						onscreen = onscreen.replace(onscreen.substring(0, onscreen.indexOf(":")), changeStr);
+						return true;
+					}
+					
+					//Variable that says the assigned unit is the correct one
+					var correct = true;
+					/*
+					 * Which unit should go with that number
+					 * Any else statements show that the unit that's trying to be assigned is incorrect
+					 * VOLTAGE: V/A, MV/MA (V, MV)
+					 * CURRENT: V/A, MV/MA (A, MA) 
+					 * POWER: W/HZ (W)
+					 * FREQUENCY: W/HZ (HZ)
+					 * POWER FACTOR/PF: DEG/ENT (ENT)
+					 * PHASE: DEG/ENT (DEG)
+					*/
+					
+					switch(can_nums[1]) {
+						case "POWER":
+							if(str=="W/HZ") {
+								tmp = "W";
+							}
+							else {
+								correct = false;
+							}
+							break;
+						case "VOLTAGE":
+							if(str=="MV/MA") {
+								tmp = "MV";
+							}
+							else if(str=="V/A") {
+								tmp = "V";
+							}
+							else {
+								//See if PF or PHASE are being entered
+								if((str == "DEG/ENT") && (pFOrPH())) {
+									break;
+								}
+								else {
+									correct = false;
+								}
+							}
+							break;
+						case "CURRENT":
+							if(str=="MV/MA") {
+								tmp = "MA";
+							}
+							else if(str=="V/A") {
+								tmp = "A";
+							}
+							else {
+								//See if PF or PHASE are being entered
+								if((str == "DEG/ENT") && (pFOrPH())) {
+									break;
+								}
+								else {
+									correct = false;
+								}
+							}
+							break;
+						case "FREQ":
+							if(str=="W/HZ") {
+								tmp = "HZ";
+							}
+							else {
+								//See if PF or PHASE are being entered
+								if((str == "DEG/ENT") && (pFOrPH())) {
+									break;
+								}
+								else {
+									correct = false;
+								}
+							}
+							break;
+						case "PHASE":
+							if(str=="DEG/ENT") {
+								tmp = "DEG";
+							}
+							else {
+								correct = false;
+							}
+							break;
+						case "PF":
+							if(!(str=="DEG/ENT")) {
+								correct = false;
+							}
+							break;
+						//No unit has been assigned
+						default:
+							alert("Invalid unit entry for " + can_nums[1]);
+							if(screenChanged) {
+								changeScreen();
+							}
+							return;
+					}
+					
+					//If the unit is incorrect
+					if(!correct) {
+						alert("Unit button enterted is not valid for the unit mode entry of: " + can_nums[1] + ". Try again");
+						if(screenChanged) {
+							changeScreen();
+						}
+						return;
+					}
+					
+					//Update and send the appropriate messages to the PHP script, screen, and textarea
+					document.getElementById("screen").innerHTML = onscreen + tmp;
+					update_textarea(onscreen + tmp);
+					shouldClear = false;
+					//can_nums = [false, null]; //Reset value
+					specialCase = true; //For ajax
+					unit = str; //Update the appropriate unit to send (for the AJAX)
+					ajaxpart(currentNum + ":"); //Send numerical data
+					currentNum = "";
+					
+					//console.log("reached2");
+				}
+				//If it's a number inputted or a decimal place
+				else if((!isNaN(str)) || (str == ".") || (str == "BS")) {
+					//Test if numerical inputs are to be sent
+					if(can_nums[0]) { //Don't send them, and concatenate them together
+						//currentNum = onscreen.substring(onscreen.indexOf(":") + 2);
+						
+						//Check to see if the user is just inputting another entry in the same unit mode
+						var colonIndex = onscreen.indexOf(":");
+						
+						//console.log("Current Number: " + currentNum);
+						//If it is a new entry of the same unit mode
+						if((colonIndex > -1) && (currentNum == "")) {
+							onscreen = onscreen.substring(0, colonIndex + 2);
+							document.getElementById("screen").innerHTML = onscreen;
+						}
+						
+						if(str == "BS") {
+							if(onscreen == (can_nums[1] + ": ")) {
+								document.getElementById("screen").innerHTML += "-";
+								lastInserted = document.getElementById("screen").innerHTML;
+								onscreen += "-";
+							}
+							else {
+								onscreen = bspace(onscreen);
+							}
+						}
+						else {
+							document.getElementById("screen").innerHTML += str;
+							lastInserted = document.getElementById("screen").innerHTML;
+							onscreen += str;
+						}
+						currentNum = onscreen.substring(onscreen.indexOf(":") + 2);
+						console.log(currentNum);
+						//Change screen back
+						if(screenChanged) {
+							changeScreen();
+						}
+						return;
+					}
+					//If they're not to be sent, send it as a keypress
+					else {
+						//Update the screen, PHP script, and textarea
+						if(str == ".") {
+							str = "DEC";
+						}
+						document.getElementById("screen").innerHTML += str;
+						update_textarea(str);
+						ajaxpart(str);
+					}
+					//onscreen = document.getElementById("screen").innerHTML;
+				}
+				//For regular keypress
+				else if(done || (document.getElementById("screen") != "")) {
+					if(can_nums[0]) {
+						clearScreen();
+						if(!done) {
+							can_nums = [false, null];
+						}
+					}
+					//Update screen, textarea, and PHP script
+					document.getElementById("screen").innerHTML += str;
+					update_textarea(str);
+					ajaxpart(str);
+					lastButtonInserted = str;
+				}
+				
+				//Change screen back if necessary
+				if(screenChanged) {
+					changeScreen();
+				}
+				
+				specialActions(str);
+			}
+			
+			//Updates the stack for the textarea and then updates the text of it
+			function update_textarea(updateTxt = document.getElementById("").innerHTML) {
+				//console.log(stack);
+				stack.push(updateTxt); //Add it to the stack
+				if(stack.length > 1) {
+					document.getElementById("minbut").style.display = "block";
+					document.getElementById("screen").style.paddingLeft = "3.4vw";
+				}
+			
+				//If the stack has reached its limit and needs to replace text
+				if(stack.length > showNum) {
+					stack.shift();
+				}
+				//console.log(stack);
+				//Update the textarea's text
+				//doTextArea();
+				shouldClear = true; //clear the screen
+				gotAck = false;
+				specialCase = false;
+				lastInserted = document.getElementById("screen").innerHTML;
+				lastButtonInsert = document.getElementById("screen").innerHTML;
+			}
+			
+			var notifierStack = [];
+			
+			//Update the textarea based on the current stack
+			function doTextArea() {
+				var tmpStr = "";
+				
+				for(var i = 0; i < notifierStack.length; i++) {
+					tmpStr += notifierStack[i] + "&#13;&#10;"; //Add a "\n" to the textarea				
+				}
+				
+				tmpStr = tmpStr.substring(0, tmpStr.length - 10);
+				//Tell the user he/she can scroll to see stack
+				document.getElementById("ta").innerHTML = tmpStr;// + " (can scroll up)";
+				
+				//Show the bottom of the textarea (the last input)
+				var objDiv = document.getElementById("ta");
+				objDiv.scrollTop = objDiv.scrollHeight;
+			}
+			
+			//For clearing the screen
+			function clearScreen() {
+				document.getElementById("screen").innerHTML = "";
+				shouldClear = false; //Reset variable
+			}
+			
+			//For backspacing a numerical or decimal input
+			function bspace(onscreen) {
+				var screenstr = document.getElementById("screen").innerHTML;
+				//console.log(currentNum);
+				//Erases the entire line and replaces it with a new one
+				if(currentNum.length < 2) {
+					document.getElementById("screen").innerHTML = stack[stack.length - 1];
+					//Should the screen clear
+					if(!(can_nums[0])) {
+						shouldClear = true;
+					}
+					
+					//Reset the number entry
+					currentNum = "";
+					return onscreen;
+				}
+				else {
+					//For just backspacing a single character
+					screenstr = screenstr.substring(0, screenstr.length - 1);
+					document.getElementById("screen").innerHTML = screenstr;
+					lastInserted = screenstr;
+					//currentNum = currentNum.substring(0, currentNum.length - 1);
+					return screenstr;
+				}
+			}
+			
+			var stackShowing = false;
+			
+			//For the dropdown (maximize/minimize) part of the screen
+			function changeScreen() {
+				var changeHeight; //Height to change it down to
+				//Div object
+				var objScreen = document.getElementById("mainscreen");
+				
+				//Make sure the dropdown is reasonable to occur
+				if((stack.length > 1) && (!stackShowing)) {
+					stackShowing = true;
+					document.getElementById("minbut").innerHTML = "--"; //Change button text
+					
+					//Change height of div based on the number of items in the stack
+					changeHeight = (5 + (stack.length * 1.85)).toString() + "vw";
+					//console.log(changeHeight);
+					//changeHeight = "11vw";
+					objScreen.style.height = changeHeight;
+					objScreen.style.lineHeight = changeHeight;
+					var tmpStr = "";
+					
+					//Build string of what's in the stack
+					for(var i = stack.length - 1; i >= 0; i--) {
+						tmpStr += stack[i];
+
+						//Except for the last item. Doesn't need a line-break
+						if(i > 0) {
+							tmpStr += "<br style='line-height: 150%;'>"; //Add a "\n" to the textarea
+						}
+					}
+					
+					//Horizontal Rule on string
+					var hrString = "<hr style='border: 2px solid yellow; width: 500px;'>";
+					
+					//Style for the paragraph of the screen
+					var pString = "<p style='font-size: 1.3vw; color: yellow; background-color: green;'>";
+					
+					//Combine the builds to make string to be inserted into the screen
+					tmpStr = hrString + pString + tmpStr + "</p>";
+					
+					//console.log(objScreen.innerHTML);
+					//Initialize the screen object
+					var screenObj = document.getElementById("screen");
+					var screentxt = screenObj.innerHTML;
+					screenObj.innerHTML = screentxt + tmpStr;
+				}
+				//If the screen is already pulled down showing the stack
+				else {
+					if(stackShowing) {
+						stackShowing = false;
+						changeHeight = "5vw"; //Default height
+						objScreen.style.height = changeHeight;
+						objScreen.style.lineHeight = changeHeight;
+						
+						//Reset screen and button
+						document.getElementById("screen").innerHTML = lastInserted;
+						document.getElementById("minbut").innerHTML = "+";
+					}
+				}
+			}
+			
+			//Array to hold the LEDs that are on
+			var currOn = [];
+			
+			//Array that maps out the correct index order of the LEDs
+			var mapLeds = [ "400HZ", "DC", "LSN", "TLK", "VOLTAGE", "NORMAL", "STORE", "V5",
+							"T1", "%DEV", "RESET", "SRQ", "RMT", "60HZ", "STBY", "OPER",
+							"CURRENT", "POWER", "SYNCHR", "PF", "PHASE", "T2", "T3", "T4",
+							"T5", "T6", "T7", "T8", "T9", "T10", "T11", "FREQ"
+						];
+			
+			//Array that has the indexes of the possible LED values that shouldn't do anything
+			var uselessList = [8, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+			
+			//AJAX and DHTML part. Runs PHP script and updates the webpage
+			function ajaxpart(test) {
+				if(cancelAjaxFunc) {
+					return;
+				}
+				console.log("Test being asked of AJAX: " + test);
+				var httpxml;
+				try {
+					httpxml = new XMLHttpRequest(); //Initializes the AJAX object
+				}
+				catch(error) {
+					//Bad broswer
+					alert("Your browser does not support AJAX! enough");
+					return false;
+				}
+				
+				//console.log();
+				httpxml.open("POST", "process_conn_combo.php", true); //Post type
+				//httpxml.open("POST", "process_conn2.php", true); //Post type
+				console.log("Opened POST request");
+				//Tells Server what type of data its sending.
+				//httpxml.setRequestHeader("Content-type", "application/json"); //Or "application/x-www-form-urlencoded" FOR HTTP FORM
+				httpxml.setRequestHeader("Content-type", "application/x-www-form-urlencoded"); //HTTP form
+				var data;
+				
+				//What to send as data (JSON object to be sent in HTTP form)
+				if(test == "led_status") {
+					data = JSON.stringify("led_check");
+				}
+				else {
+					data = JSON.stringify(test);
+				}
+				console.log("JSON data to send: " + data);
+				//httpxml.send(data); //Or send it with the comment above and for here: .send("jsonthing=" + data);
+				httpxml.send("jsonthing=" + data); //Give the data a recognizable name in the $_POST for PHP script
+				waitingOnServer = true;
+				//httpxml.send("msg=led_check");
+				//console.log("reached4");
+				
+				//Successful input back from the PHP script
+				httpxml.onreadystatechange = function() {
+					if((this.readyState == 4) && (this.status == 200)) {
+						var json = JSON.parse(this.responseText); //Input data is parsed from JSON to JS
+						console.log("Data received: " + json);
+						//console.log("Incoming LEDs: " + json);
+						//console.log("curr1: " + currOn);
+						
+						//Tests if the data should go through a proper LED status update response
+						/* && test == "led_status"*/
+						if((json.constructor === Array) && (json[1] != "timedout")) {
+							var numAdded = 0;
+							notifierStack.push("Successful!"); //Not numerical input
+							doTextArea();
+							//Traverse the LEDs that are ON
+							for(var element of json) {
+								element = Number(element);
+								//Make sure the LED isn't already ON and that it should be able to turn ON
+								if((currOn.indexOf(element) == -1) && (uselessList.indexOf(element) == -1)) {
+									currOn.push(element); //Add the LED number to the ones that are one
+									//Need to turn on button
+									setButtonBackOn(mapLeds[element]);
+									//console.log(mapLeds[element]);
+									numAdded++;
+								}
+							}
+							//console.log("curr2: " + currOn);
+							//Traverse the LED array of all that were/are ON and turn OFF those that are no longer ON
+							for(var i = 0; i < currOn.length - numAdded; i++) {
+								currOn[i] = Number(currOn[i]);
+								var index = json.indexOf(currOn[i]);
+								//console.log("CurrOn element: " + currOn[i] + ". It's at index: " + index + " of jsonArr");
+								if(index == -1) {
+									//console.log("i: " + i);
+									var rmved = currOn.splice(i, 1);
+									//console.log("Turned off: " + rmved.toString() + " at index: " + i.toString());
+									////Need to turn off button
+									setButtonBackOff(mapLeds[rmved]);
+									i--; //Shift the index back (of is an iterator keyword)
+								}
+							}
+							//console.log("curr3: " + currOn);
+							if(startUp) {
+								startUp = false;
+								takeInitialActions();
+							}
+						}
+						//Not an LED status update
+						else {
+							//Test if it got the right response or not
+							if(json == "done") {
+								//Numerical input?
+								if(specialCase) {
+									gotAck = true;
+									console.log("2nd response beginning (for unit sending)");
+									//If numerical data successfully received
+									if(gotAck) {
+										console.log("Sending Units: " + unit);
+										//Reset special case and send the key press (unit)
+										specialCase = false;
+										gotAck = false;
+										httpxml.open("POST", "process_conn2.php", true);
+										httpxml.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+										//console.log(unit.replace(/\//, ""));
+										httpxml.send("jsonthing=" + JSON.stringify(unit.replace(/\//, ""))); //Replace all "/" with "". Sends the keypress
+										console.log("Sent unit");
+									}
+								}
+								notifierStack.push("Successful!"); //Not numerical input
+								doTextArea();
+							}
+							else {
+								//Bad... timeout occured
+								specialCase = false;
+								if((json.constructor === Array) && (json[1] == "timedout")) {
+									firstClick = true;
+									clearInterval(intervalName); //Stop the LED status update
+									
+									//Were there errors reported
+									if(json[0].length > 0) { //Yes
+										var arrTxtStr = "Failed: Request Timed Out\n\nErrors:";
+										for(var element of json[0]) {
+											arrTxtStr += "\n" + element;
+										}
+										//Alert the user of the errors
+										alert(arrTxtStr);
+									}
+									else if((json.length > 2) && (json[2].length > 0)) {
+										var arrTxtStr = "Failed: Request Timed Out\n\nReceived Strings:";
+										for(var element of json[2]) {
+											arrTxtStr += "\n" + element;
+										}
+										//Alert the user of the errors
+										alert(arrTxtStr);
+									}
+									else { //No
+										alert("Failed: Request Timed Out");
+									}
+								}
+								else {
+									// PMC/Socket error
+									if(json.indexOf("NAcK") != 0) {
+										alert(json);
+									}
+									else {
+										alert(json);
+									}
+								}
+								notifierStack.push("Failed!"); //Not numerical input
+								doTextArea();
+							}
+						}
+						//document.getElementById("test").innerHTML= this.responseText;
+					}
+					waitingOnServer = false;
+					console.log();
+				};
+			}
+			
+			function openwebmoats() {
+				var confirmed = confirm("Are you sure you'd like leave?");
+				if(comfirmed) {
+					window.open("/moatscomms.html", target="_blank");
+				}
+			}
+			
+			//Make instructions go bye-bye
+			function disappearI() {
+				document.getElementById('instrucdiv').style.display = "none";
+				document.getElementById('screen').scrollIntoView();
+				document.getElementById("ta").style.display = "block";
+			}
+			
+			//LEDs status update; turn it ON or OFF
+			function changeLedStatus() {
+				//Find current stauts
+				var currTxt = document.getElementById('led_but').innerHTML;
+				if(currTxt == 'Status Enabled') {
+					var check = confirm("Are you sure you'd like to disable grabbing the LED status?");
+					if(check) { //OK
+						document.getElementById('led_but').innerHTML = 'Status Disabled';
+						shouldGetStatus = false;
+						console.log("LED get status off");
+					}
+				}
+				else {
+					var check = confirm("Are you sure you'd like to enable grabbing the LED status?");
+					if(check) { //OK
+						document.getElementById('led_but').innerHTML = 'Status Enabled';
+						shouldGetStatus = true;
+						console.log("LED get status on"); 
+					}
+				}
+				forFirst(); //Test if the LEDs should be updated
+			}
+			
+			//Get the instructions
+			function pullInstrucs() {
+				var response = confirm("Do you want to pull up the instructions?");
+				if (response) { //OK
+					document.getElementById("ta").style.display = "none";
+					//Actual Instructions :/. Then it makes it visible and moves the window to the instructions
+					var txt = "<br><span style='font-weight: bold; text-decoration: underline;'>Instructions</span>\
+								<br>\
+								<ul>\
+									<li>Refer to PMC Instructions if not found here</li><br>\
+									<li>To set value (V, I, DEG, W):</li>\
+										<ol>\
+											<li>Hit the appropriate right-side button (VOLTAGE, CURRENT...)</li>\
+											<li>After success, start putting in numbers wanted for it</li>\
+											<li>Hit an appropriate unit for the numbers (MV, V, DEG...)</li>\
+										</ol><br>\
+									<li>Possible alerts:</li>\
+										<ol>\
+											<li><span class='list'>Failed: Request Time Out</span><br>\
+											AJAX script has received no response from PHP after 1 second</li>\
+											<li><span class='list'>Successful</span><br>\
+											PHP script has received correct response from socket (a AcK)</li>\
+											<li><span class='list'>Failed: NAcK error</span><br>\
+											PHP script has received incorrect response from socket (a NAcK)</li>\
+										</ol><br>\
+									<li><span class='list'>CLEAR</span> button will clear JUST THE SCREEN</li>\
+									<li><span class='list'><--</span> button is for backspacing numbers</li><br>\
+									<li>To check LED status without pressing keypad button (no keypress sent):</li>\
+										<ol>\
+											<li>Press the -Status Enabled/Disabled- button until it's on/back on -Status Enabled-</li>\
+											<li>Wait for LEDs to show up, successful if they light up OR nothing happens after 2 secs</li>\
+										</ol>\
+								</ul>";
+					document.getElementById('instrucdiv').style.display = "block";
+					document.getElementById('pinstrucs').innerHTML = txt;
+					console.log("Instructions");
+					window.location.hash = 'pinstrucs';
+				}
+				else {
+					return;
+				}
+			}
+		</script>
+		<script>
+			var startUp = true;
+			window.onload = function() {
+				document.getElementById("minbut").style.display = "none";
+				var check = confirm("Should I grab the PMC LEDs and update the page?");
+				if(check) {
+					ajaxpart("led_status");
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<div id="circlething">
+			<p><span id="SRQ" class="circle">SRQ</span><span id="RMT" class="circle">RMT</span></p>
+			<p><span id="LSN" class="circle">LSN</span><span id="TLK" class="circle">TLK</span></p>
+		</div>
+		<p id="V5">PMC 5V</p>
+		<button id="led_but" class="topRight" title="Change if LED status is updated" onclick="changeLedStatus()">Status Disabled</button>
+		<button id="instructions" class="topRight" onclick="pullInstrucs()" title="Instructions">?</button>
+		<CENTER><div id="mainscreen" title="Click + OR - to bring up or minimize the current stack"><span id="screen"></span><button onclick="changeScreen()" id="minbut">+</button></div>
+		<!--<textarea id="ta" readonly style="" name="h"></textarea>--></CENTER>
+		<div id="bigdiv">
+			<div id="buttons">
+				<button id="RESET" onclick="button_clicked('RESET')">RESET</button>
+				<button id="DC" onclick="button_clicked('DC')">DC</button>
+				<button id="60HZ" onclick="button_clicked('60HZ')">60 HZ</button>
+				<button id="400HZ" onclick="button_clicked('400HZ')">400 HZ</button>
+				<button id="STORE" onclick="button_clicked('STORE')">STORE</button>
+				<button id="NORMAL" onclick="button_clicked('NORMAL')">NORMAL</button>
+				<button id="PCT_DEV" onclick="button_clicked('PCT_DEV')">%DEV</button>
+				<button id="VOLTAGE" onclick="button_clicked('VOLTAGE')">VOLTAGE</button>
+				<button onclick="button_clicked('RECALL')">RECALL</button>
+				<button id="SYNCHR" onclick="button_clicked('SYNCHR')">SYNCHRO SCOPE</button>
+				<button id="POWER" onclick="button_clicked('POWER')">POWER</button>
+				<button id="CURRENT" onclick="button_clicked('CURRENT')">CURRENT</button>
+				<button id="CLEAR" onclick="button_clicked('CLEAR')">CLEAR</button>
+				<button id="FREQ" onclick="button_clicked('FREQ')">FREQ-<br>UENCY</button>
+				<button id="PHASE" onclick="button_clicked('PHASE')">PHASE</button>
+				<button id="PF" onclick="button_clicked('PF')">POWER FACTOR</button>
+			</div>
+			<div id="keypad">
+				<button class="keybuttons" onclick="button_clicked('0')">0</button>
+				<button class="keybuttons" onclick="button_clicked('1')">1</button>
+				<button class="keybuttons" onclick="button_clicked('2')">2</button>
+				<button class="keybuttons" onclick="button_clicked('3')">3</button>
+				<button class="keybuttons" onclick="button_clicked('4')">4</button>
+				<button class="keybuttons" onclick="button_clicked('5')">5</button>
+				<button class="keybuttons" onclick="button_clicked('6')">6</button>
+				<button class="keybuttons" onclick="button_clicked('7')">7</button>
+				<button class="keybuttons" onclick="button_clicked('8')">8</button>
+				<button class="keybuttons" onclick="button_clicked('9')">9</button>
+				<button class="keybuttons" onclick="button_clicked('.')"
+						title="Decimal point">.</button>
+				<button class="keybuttons" onclick="button_clicked('BS')" 
+						style="font-size: 1.2rem; letter-spacing: -2px;"
+						title="Negative sign/backspace">---<br>&lt;----</button>
+			</div>
+			<div id="unitpad">
+				<button class="unitbuts" onclick="button_clicked('V/A')">V<br>A</button>
+				<button class="unitbuts" onclick="button_clicked('MV/MA')">MV<br>MA</button>
+				<button class="unitbuts" onclick="button_clicked('W/HZ')">W<br>HZ</button>
+				<button class="unitbuts" onclick="button_clicked('DEG/ENT')">DEG<br>ENTER</button>
+			</div>
+			<div id="otherpad">
+				<button id="OPER" class="otherbuts" onclick="button_clicked('OPER')">OPER</button>
+				<button id="STBY" class="otherbuts" onclick="button_clicked('STBY')">STBY</button>
+				<button class="otherbuts" onclick="button_clicked('UP')">UP</button>
+				<button class="otherbuts" onclick="button_clicked('DN')">DOWN</button>
+			</div>
+		</div>
+		<button onclick="changeAjax()"></button>
+		<textarea id="ta" readonly name="h"></textarea>
+		<CENTER><div id="instrucdiv">
+			<p id="pinstrucs"></p>
+			<button id="instrucsdone" onclick="disappearI()">Done Reading</button>
+		</div></CENTER>
+		<button id="webmoats" onclick="openwebmoats()">Web MOATS</button>
+	</body>
+</html>

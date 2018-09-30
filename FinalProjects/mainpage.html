@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body {
+				text-align: center;
+			}
+			
+			button {
+				display: block;
+				margin: 0 auto;
+				margin-top: 175px;
+				font-size: 5em;
+				width: auto;
+				height: auto;
+			}
+			
+			button:hover {
+				background-color: rgba(200, 100, 0, .5);
+			}
+		</style>
+		<script type="text/javascript">
+			function buttonClicked(url) {
+				console.log("Bye");
+				window.open(url, "_self");
+			}
+		</script>
+	</head>
+	<body>
+		<button onclick="buttonClicked('/arbweb3-3.html')">Go to Web PMC</button>
+		<button onclick="buttonClicked('/moatscomms.html')">Go to Web MOATS</button>
+	</body>
+</html>
